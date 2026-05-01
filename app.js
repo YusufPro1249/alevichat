@@ -1,11 +1,16 @@
 import { supabase } from "./supabaseClient.js";
 
 const ROOMS = ["genel", "oyun", "sohbet"];
+const MAX_MESSAGE_LENGTH = 1000;
+const MAX_REPORT_LENGTH = 500;
+const MAX_USERNAME_LENGTH = 40;
+const MAX_CITY_LENGTH = 80;
+const MAX_ABOUT_LENGTH = 280;
 
 const state = {
   me: null,
   profile: null,
-  mode: "room", // room | dm
+  mode: "room",
   room: "genel",
   dmWith: null,
   users: [],
@@ -18,6 +23,7 @@ const state = {
   renderedMessageIds: new Set(),
   selectedUser: null,
   authMode: "login",
+  authSubscription: null,
 };
 
 const el = {
@@ -59,6 +65,7 @@ const el = {
   pfUsername: document.getElementById("pfUsername"),
   pfCity: document.getElementById("pfCity"),
   pfAbout: document.getElementById("pfAbout"),
+  pfRole: document.getElementById("pfRole"),
   pfNote: document.getElementById("pfNote"),
 };
 
@@ -72,7 +79,7 @@ function escapeHtml(value) {
 }
 
 function setNote(target, text, bad = false) {
-  target.textContent = text;
+  target.textContent = String(text || "");
   target.classList.toggle("note--bad", bad);
 }
 
@@ -85,23 +92,43 @@ function formatTime(ts) {
   return new Date(ts).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function normalizeText(input, maxLength) {
+  return String(input || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+
+function sanitizeMessage(input) {
+  return String(input || "").replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, MAX_MESSAGE_LENGTH);
+}
+
+function messageKey(id, kind) {
+  return `${kind}:${id}`;
+}
+
+function shouldStickBottom() {
+  const threshold = 48;
+  const remaining = el.messages.scrollHeight - el.messages.scrollTop - el.messages.clientHeight;
+  return remaining < threshold;
+}
+
 function resetMessages() {
   state.renderedMessageIds.clear();
   el.messages.innerHTML = "";
 }
 
-function addMessageRow({ id, username, created_at, message, user_id }) {
-  if (!id || state.renderedMessageIds.has(id)) return;
-  state.renderedMessageIds.add(id);
+function addMessageRow({ id, username, created_at, message, user_id, kind = state.mode }) {
+  if (!id) return;
+  const dedupeKey = messageKey(id, kind);
+  if (state.renderedMessageIds.has(dedupeKey)) return;
+  state.renderedMessageIds.add(dedupeKey);
 
-  const mine = state.me && user_id === state.me.id;
+  const stickBottom = shouldStickBottom();
+  const mine = Boolean(state.me && user_id === state.me.id);
   const row = document.createElement("article");
   row.className = `msg ${mine ? "msg--mine" : ""}`;
 
   const safeName = escapeHtml(username || "user");
   const safeText = escapeHtml(message || "");
   const ts = formatTime(created_at);
-
   row.innerHTML = `
     <div class="msg__meta">
       <button class="msg__name" type="button" ${mine ? "disabled" : ""}>${safeName}</button>
@@ -109,8 +136,9 @@ function addMessageRow({ id, username, created_at, message, user_id }) {
     </div>
     <div class="msg__text">${safeText}</div>
   `;
+
   const nameBtn = row.querySelector(".msg__name");
-  if (!mine) {
+  if (!mine && nameBtn) {
     nameBtn.addEventListener("click", () => {
       const user = state.users.find((u) => u.id === user_id);
       if (user) openUserModal(user);
@@ -118,17 +146,19 @@ function addMessageRow({ id, username, created_at, message, user_id }) {
   }
 
   el.messages.appendChild(row);
-  el.messages.scrollTop = el.messages.scrollHeight;
+  if (stickBottom) {
+    el.messages.scrollTop = el.messages.scrollHeight;
+  }
 }
 
 function setChatHeader() {
   if (state.mode === "room") {
     el.chatTitle.textContent = `# ${state.room}`;
     el.chatSub.textContent = "Oda sohbeti";
-  } else {
-    el.chatTitle.textContent = `DM · @${state.dmWith?.username || "-"}`;
-    el.chatSub.textContent = "Özel mesaj";
+    return;
   }
+  el.chatTitle.textContent = `DM · @${state.dmWith?.username || "-"}`;
+  el.chatSub.textContent = "Özel mesaj";
 }
 
 function getUserById(uid) {
@@ -150,9 +180,9 @@ function renderRooms() {
   });
 }
 
-function userButtonLabel(u) {
-  const unread = state.dmUnreadByUser.get(u.id) || 0;
-  return unread > 0 ? `@${u.username} (${unread})` : `@${u.username}`;
+function userButtonLabel(user) {
+  const unread = state.dmUnreadByUser.get(user.id) || 0;
+  return unread > 0 ? `@${user.username} (${unread})` : `@${user.username}`;
 }
 
 function renderUsers() {
@@ -163,13 +193,12 @@ function renderUsers() {
     el.userList.innerHTML = `<p class="muted">Kullanıcı bulunamadı.</p>`;
     return;
   }
-
-  visible.forEach((u) => {
+  visible.forEach((user) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "chip";
-    btn.textContent = userButtonLabel(u);
-    btn.addEventListener("click", () => openUserModal(u));
+    btn.textContent = userButtonLabel(user);
+    btn.addEventListener("click", () => openUserModal(user));
     el.userList.appendChild(btn);
   });
 }
@@ -181,16 +210,13 @@ function renderBlocked() {
     el.blockedList.innerHTML = `<p class="muted">Engellenen kullanıcı yok.</p>`;
     return;
   }
-  blocked.forEach((u) => {
-    const row = document.createElement("div");
-    row.className = "row";
+  blocked.forEach((user) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "chip";
-    btn.textContent = `@${u.username}`;
-    btn.addEventListener("click", () => openUserModal(u));
-    row.appendChild(btn);
-    el.blockedList.appendChild(row);
+    btn.textContent = `@${user.username}`;
+    btn.addEventListener("click", () => openUserModal(user));
+    el.blockedList.appendChild(btn);
   });
 }
 
@@ -208,9 +234,10 @@ async function upsertProfileFromUser(user, usernameInput = "") {
   const payload = {
     id: user.id,
     email: user.email || "",
-    username: (usernameInput || usernameDefault).trim().slice(0, 40),
+    username: normalizeText(usernameInput || usernameDefault, MAX_USERNAME_LENGTH),
     city: "",
     about: "",
+    role: "user",
   };
   const { data, error } = await supabase
     .from("profiles")
@@ -226,10 +253,14 @@ async function loadProfile() {
     .from("profiles")
     .select("id, email, username, city, about, role")
     .eq("id", state.me.id)
-    .single();
+    .maybeSingle();
   if (error) throw error;
-  state.profile = data;
-  localStorage.setItem("alevichat_me", JSON.stringify(data));
+  if (!data) {
+    state.profile = await upsertProfileFromUser(state.me, "");
+  } else {
+    state.profile = data;
+  }
+  localStorage.setItem("alevichat_me", JSON.stringify(state.profile));
 }
 
 async function loadUsers() {
@@ -237,32 +268,30 @@ async function loadUsers() {
     .from("profiles")
     .select("id, username, city, about, role")
     .neq("id", state.me.id)
-    .order("username");
+    .order("username", { ascending: true });
   if (error) throw error;
-  state.users = data || [];
+  state.users = Array.isArray(data) ? data : [];
 }
 
 async function loadBlocks() {
   state.blockedByMe.clear();
   state.blockedMe.clear();
 
-  const { data: byMe, error: err1 } = await supabase
-    .from("blocks")
-    .select("blocked_user_id")
-    .eq("user_id", state.me.id);
-  if (err1) throw err1;
-  (byMe || []).forEach((x) => state.blockedByMe.add(x.blocked_user_id));
+  const { data: byMe, error: byMeErr } = await supabase.from("blocks").select("blocked_user_id").eq("user_id", state.me.id);
+  if (byMeErr) throw byMeErr;
+  for (const row of byMe || []) state.blockedByMe.add(row.blocked_user_id);
 
-  const { data: meBlockedBy, error: err2 } = await supabase
+  const { data: meBlockedBy, error: blockedMeErr } = await supabase
     .from("blocks")
     .select("user_id")
     .eq("blocked_user_id", state.me.id);
-  if (err2) throw err2;
-  (meBlockedBy || []).forEach((x) => state.blockedMe.add(x.user_id));
+  if (blockedMeErr) throw blockedMeErr;
+  for (const row of meBlockedBy || []) state.blockedMe.add(row.user_id);
 }
 
 function canTalkTo(uid) {
   if (!uid) return false;
+  if (uid === state.me?.id) return false;
   if (state.blockedByMe.has(uid)) return false;
   if (state.blockedMe.has(uid)) return false;
   return true;
@@ -273,7 +302,8 @@ function openUserModal(user) {
   el.umTitle.textContent = `@${user.username}`;
   el.btnBlockUser.classList.toggle("hidden", state.blockedByMe.has(user.id));
   el.btnUnblockUser.classList.toggle("hidden", !state.blockedByMe.has(user.id));
-  setNote(el.umNote, state.blockedMe.has(user.id) ? "Bu kullanıcı sizi engellemiş." : "");
+  const blockedMeText = state.blockedMe.has(user.id) ? "Bu kullanıcı sizi engellemiş." : "";
+  setNote(el.umNote, blockedMeText);
   el.userModal.classList.remove("hidden");
 }
 
@@ -286,6 +316,7 @@ function openProfileModal() {
   el.pfUsername.value = state.profile.username || "";
   el.pfCity.value = state.profile.city || "";
   el.pfAbout.value = state.profile.about || "";
+  if (el.pfRole) el.pfRole.value = state.profile.role || "user";
   setNote(el.pfNote, "");
   el.profileModal.classList.remove("hidden");
 }
@@ -300,48 +331,60 @@ async function loadRoomHistory(room) {
     .select("id, user_id, username, room, message, created_at")
     .eq("room", room)
     .order("id", { ascending: true })
-    .limit(250);
+    .limit(300);
   if (error) throw error;
 
   resetMessages();
-  (data || []).forEach((m) => {
-    if (state.blockedByMe.has(m.user_id) || state.blockedMe.has(m.user_id)) return;
-    addMessageRow(m);
-  });
+  for (const msg of data || []) {
+    if (state.blockedByMe.has(msg.user_id) || state.blockedMe.has(msg.user_id)) continue;
+    addMessageRow({ ...msg, kind: "room" });
+  }
+  el.messages.scrollTop = el.messages.scrollHeight;
 }
 
 async function loadDmHistory(otherUserId) {
-  const me = state.me.id;
+  const meId = state.me.id;
+  const filter = `and(from_user_id.eq.${meId},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${meId})`;
   const { data, error } = await supabase
     .from("dms")
     .select("id, from_user_id, to_user_id, message, created_at")
-    .or(`and(from_user_id.eq.${me},to_user_id.eq.${otherUserId}),and(from_user_id.eq.${otherUserId},to_user_id.eq.${me})`)
+    .or(filter)
     .order("id", { ascending: true })
-    .limit(250);
+    .limit(300);
   if (error) throw error;
 
   resetMessages();
-  (data || []).forEach((m) => {
-    const from = getUserById(m.from_user_id);
+  for (const dm of data || []) {
+    const from = getUserById(dm.from_user_id);
     addMessageRow({
-      id: m.id,
-      user_id: m.from_user_id,
+      id: dm.id,
+      user_id: dm.from_user_id,
       username: from?.username || "user",
-      message: m.message,
-      created_at: m.created_at,
+      message: dm.message,
+      created_at: dm.created_at,
+      kind: "dm",
     });
-  });
+  }
+  el.messages.scrollTop = el.messages.scrollHeight;
 }
 
-function unsubscribeRoom() {
-  if (state.roomChannel) {
-    supabase.removeChannel(state.roomChannel);
-    state.roomChannel = null;
+async function safeRemoveChannel(channelRef) {
+  if (!channelRef) return;
+  try {
+    await supabase.removeChannel(channelRef);
+  } catch (_error) {
+    // Unknown/closed channel durumunda sessiz devam.
   }
 }
 
+async function unsubscribeRoom() {
+  if (!state.roomChannel) return;
+  const current = state.roomChannel;
+  state.roomChannel = null;
+  await safeRemoveChannel(current);
+}
+
 function subscribeRoom(room) {
-  unsubscribeRoom();
   state.roomChannel = supabase
     .channel(`room-${room}`)
     .on(
@@ -353,39 +396,34 @@ function subscribeRoom(room) {
         filter: `room=eq.${room}`,
       },
       (payload) => {
-        const m = payload.new;
+        const msg = payload.new;
         if (state.mode !== "room" || state.room !== room) return;
-        if (state.blockedByMe.has(m.user_id) || state.blockedMe.has(m.user_id)) return;
-        addMessageRow(m);
+        if (state.blockedByMe.has(msg.user_id) || state.blockedMe.has(msg.user_id)) return;
+        addMessageRow({ ...msg, kind: "room" });
       }
     )
     .subscribe();
 }
 
-function unsubscribeDms() {
-  if (state.dmInChannel) {
-    supabase.removeChannel(state.dmInChannel);
-    state.dmInChannel = null;
-  }
-  if (state.dmOutChannel) {
-    supabase.removeChannel(state.dmOutChannel);
-    state.dmOutChannel = null;
-  }
+async function unsubscribeDms() {
+  const inCh = state.dmInChannel;
+  const outCh = state.dmOutChannel;
+  state.dmInChannel = null;
+  state.dmOutChannel = null;
+  await Promise.all([safeRemoveChannel(inCh), safeRemoveChannel(outCh)]);
 }
 
 function subscribeDms() {
-  unsubscribeDms();
-  const me = state.me.id;
-
+  const meId = state.me.id;
   state.dmInChannel = supabase
-    .channel(`dm-in-${me}`)
+    .channel(`dm-in-${meId}`)
     .on(
       "postgres_changes",
       {
         event: "INSERT",
         schema: "public",
         table: "dms",
-        filter: `to_user_id=eq.${me}`,
+        filter: `to_user_id=eq.${meId}`,
       },
       (payload) => {
         const dm = payload.new;
@@ -399,43 +437,58 @@ function subscribeDms() {
             username: from?.username || "user",
             message: dm.message,
             created_at: dm.created_at,
+            kind: "dm",
           });
-        } else {
-          const old = state.dmUnreadByUser.get(dm.from_user_id) || 0;
-          state.dmUnreadByUser.set(dm.from_user_id, old + 1);
-          renderUsers();
+          return;
         }
+        const oldCount = state.dmUnreadByUser.get(dm.from_user_id) || 0;
+        state.dmUnreadByUser.set(dm.from_user_id, oldCount + 1);
+        renderUsers();
       }
     )
     .subscribe();
 
   state.dmOutChannel = supabase
-    .channel(`dm-out-${me}`)
+    .channel(`dm-out-${meId}`)
     .on(
       "postgres_changes",
       {
         event: "INSERT",
         schema: "public",
         table: "dms",
-        filter: `from_user_id=eq.${me}`,
+        filter: `from_user_id=eq.${meId}`,
       },
       (payload) => {
         const dm = payload.new;
         if (!(state.mode === "dm" && state.dmWith && dm.to_user_id === state.dmWith.id)) return;
-        const from = getUserById(dm.from_user_id);
         addMessageRow({
           id: dm.id,
           user_id: dm.from_user_id,
-          username: from?.username || state.profile.username,
+          username: state.profile?.username || "ben",
           message: dm.message,
           created_at: dm.created_at,
+          kind: "dm",
         });
       }
     )
     .subscribe();
 }
 
+async function loadDmUnreadCounts() {
+  state.dmUnreadByUser.clear();
+  const meId = state.me.id;
+  const { data, error } = await supabase.from("dms").select("from_user_id, created_at").eq("to_user_id", meId).limit(600);
+  if (error) throw error;
+  for (const row of data || []) {
+    if (state.blockedByMe.has(row.from_user_id) || state.blockedMe.has(row.from_user_id)) continue;
+    const old = state.dmUnreadByUser.get(row.from_user_id) || 0;
+    state.dmUnreadByUser.set(row.from_user_id, old + 1);
+  }
+}
+
 async function openRoom(room) {
+  if (!ROOMS.includes(room)) return;
+  await unsubscribeRoom();
   state.mode = "room";
   state.room = room;
   state.dmWith = null;
@@ -447,7 +500,7 @@ async function openRoom(room) {
 
 async function openDmWith(user) {
   if (!canTalkTo(user.id)) {
-    alert("Bu kullanıcıyla DM kapalı (engel).");
+    alert("Bu kullanıcıyla DM engel nedeniyle kapalı.");
     return;
   }
   state.mode = "dm";
@@ -456,16 +509,18 @@ async function openDmWith(user) {
   renderUsers();
   setChatHeader();
   renderRooms();
-  unsubscribeRoom();
+  await unsubscribeRoom();
   await loadDmHistory(user.id);
 }
 
 async function sendRoomMessage(text) {
+  const cleanText = sanitizeMessage(text);
+  if (!cleanText) throw new Error("Boş mesaj gönderilemez.");
   const payload = {
     user_id: state.me.id,
     username: state.profile.username,
     room: state.room,
-    message: text,
+    message: cleanText,
   };
   const { error } = await supabase.from("messages").insert(payload);
   if (error) throw error;
@@ -474,37 +529,39 @@ async function sendRoomMessage(text) {
 async function sendDm(text) {
   if (!state.dmWith) throw new Error("DM seçilmedi.");
   if (!canTalkTo(state.dmWith.id)) throw new Error("DM engel nedeniyle kapalı.");
+  const cleanText = sanitizeMessage(text);
+  if (!cleanText) throw new Error("Boş mesaj gönderilemez.");
   const payload = {
     from_user_id: state.me.id,
     to_user_id: state.dmWith.id,
-    message: text,
+    message: cleanText,
   };
   const { error } = await supabase.from("dms").insert(payload);
-  if (error) throw error;
+  if (error) {
+    if (String(error.message || "").includes("from_user_id")) {
+      throw new Error("dms tablosu eksik: from_user_id/to_user_id kolonlarını SQL ile oluşturun.");
+    }
+    throw error;
+  }
 }
 
 async function blockUser(uid) {
-  const { error } = await supabase.from("blocks").insert({
-    user_id: state.me.id,
-    blocked_user_id: uid,
-  });
-  if (error && !String(error.message).includes("duplicate")) throw error;
+  const { error } = await supabase.from("blocks").insert({ user_id: state.me.id, blocked_user_id: uid });
+  if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
 }
 
 async function unblockUser(uid) {
-  const { error } = await supabase
-    .from("blocks")
-    .delete()
-    .eq("user_id", state.me.id)
-    .eq("blocked_user_id", uid);
+  const { error } = await supabase.from("blocks").delete().eq("user_id", state.me.id).eq("blocked_user_id", uid);
   if (error) throw error;
 }
 
 async function reportUser(uid, reason) {
+  const cleanReason = normalizeText(reason, MAX_REPORT_LENGTH);
+  if (!cleanReason) throw new Error("Rapor nedeni boş olamaz.");
   const { error } = await supabase.from("reports").insert({
     reporter_id: state.me.id,
     target_user_id: uid,
-    reason: reason.slice(0, 500),
+    reason: cleanReason,
   });
   if (error) throw error;
 }
@@ -512,6 +569,7 @@ async function reportUser(uid, reason) {
 async function refreshPeoplePanels() {
   await loadUsers();
   await loadBlocks();
+  await loadDmUnreadCounts();
   renderUsers();
   renderBlocked();
 }
@@ -523,6 +581,7 @@ async function handlePostAuthSetup() {
   await refreshPeoplePanels();
   renderRooms();
   setChatHeader();
+  await unsubscribeDms();
   subscribeDms();
   await openRoom(state.room);
 }
@@ -530,48 +589,56 @@ async function handlePostAuthSetup() {
 async function restoreSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
-  const session = data.session;
-  if (!session) {
+  if (!data.session) {
     state.me = null;
     state.profile = null;
     toggleAuth(false);
     updateMeBadge();
     return;
   }
-  state.me = session.user;
+  state.me = data.session.user;
   await handlePostAuthSetup();
 }
 
 async function login(email, password) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  state.me = (await supabase.auth.getUser()).data.user;
-  await handlePostAuthSetup();
-}
-
-async function signup(email, password, username) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
-  if (!data.user) throw new Error("Kayıt başarısız.");
-
-  await upsertProfileFromUser(data.user, username);
+  const { data } = await supabase.auth.getUser();
   state.me = data.user;
   await handlePostAuthSetup();
 }
 
-async function logout() {
-  unsubscribeRoom();
-  unsubscribeDms();
-  await supabase.auth.signOut();
+async function signup(email, password, username) {
+  const cleanUsername = normalizeText(username, MAX_USERNAME_LENGTH);
+  if (!cleanUsername) throw new Error("Kullanıcı adı zorunlu.");
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  if (!data.user) throw new Error("Kayıt başarısız.");
+
+  await upsertProfileFromUser(data.user, cleanUsername);
+  state.me = data.user;
+  await handlePostAuthSetup();
+}
+
+async function logout(skipRemote = false) {
+  await Promise.all([unsubscribeRoom(), unsubscribeDms()]);
+  if (!skipRemote) {
+    await supabase.auth.signOut();
+  }
   state.me = null;
   state.profile = null;
   state.users = [];
+  state.mode = "room";
+  state.room = ROOMS[0];
+  state.dmWith = null;
   state.blockedByMe.clear();
   state.blockedMe.clear();
   state.dmUnreadByUser.clear();
+  state.selectedUser = null;
   resetMessages();
   toggleAuth(false);
   updateMeBadge();
+  renderRooms();
   renderUsers();
   renderBlocked();
 }
@@ -591,8 +658,9 @@ function wireEvents() {
     const username = el.authUsername.value.trim();
     try {
       setNote(el.authNote, "");
+      if (!email || !password) throw new Error("Email ve şifre zorunlu.");
       if (state.authMode === "signup") {
-        if (!username) throw new Error("Kayıt için kullanıcı adı gerekli.");
+        if (!username) throw new Error("Kayıt için kullanıcı adı zorunlu.");
         await signup(email, password, username);
         setNote(el.authNote, "Kayıt başarılı.");
       } else {
@@ -600,15 +668,15 @@ function wireEvents() {
         setNote(el.authNote, "Giriş başarılı.");
       }
       el.authPassword.value = "";
-    } catch (err) {
-      setNote(el.authNote, err.message || "İşlem başarısız.", true);
+    } catch (error) {
+      setNote(el.authNote, error.message || "İşlem başarısız.", true);
     }
   });
 
   el.composer.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!state.me) return;
-    const text = el.messageInput.value.trim();
+    const text = sanitizeMessage(el.messageInput.value);
     if (!text) return;
     el.messageInput.value = "";
     try {
@@ -617,30 +685,32 @@ function wireEvents() {
       } else {
         await sendDm(text);
       }
-    } catch (err) {
-      alert(err.message || "Mesaj gönderilemedi.");
+    } catch (error) {
+      alert(error.message || "Mesaj gönderilemedi.");
     }
   });
 
   el.btnLogout.addEventListener("click", async () => {
     try {
-      await logout();
-    } catch (err) {
-      alert(err.message || "Çıkış yapılamadı.");
+      await logout(false);
+    } catch (error) {
+      alert(error.message || "Çıkış yapılamadı.");
     }
   });
 
-  el.userSearch.addEventListener("input", () => renderUsers());
+  el.userSearch.addEventListener("input", renderUsers);
 
   el.btnCloseUserModal.addEventListener("click", closeUserModal);
   el.userModal.addEventListener("click", (e) => {
     if (e.target === el.userModal) closeUserModal();
   });
+
   el.btnStartDm.addEventListener("click", async () => {
     if (!state.selectedUser) return;
     closeUserModal();
     await openDmWith(state.selectedUser);
   });
+
   el.btnBlockUser.addEventListener("click", async () => {
     if (!state.selectedUser) return;
     try {
@@ -648,10 +718,14 @@ function wireEvents() {
       await refreshPeoplePanels();
       openUserModal(state.selectedUser);
       setNote(el.umNote, "Kullanıcı engellendi.");
-    } catch (err) {
-      setNote(el.umNote, err.message || "Hata.", true);
+      if (state.dmWith?.id === state.selectedUser.id) {
+        await openRoom(state.room);
+      }
+    } catch (error) {
+      setNote(el.umNote, error.message || "Engelleme başarısız.", true);
     }
   });
+
   el.btnUnblockUser.addEventListener("click", async () => {
     if (!state.selectedUser) return;
     try {
@@ -659,10 +733,11 @@ function wireEvents() {
       await refreshPeoplePanels();
       openUserModal(state.selectedUser);
       setNote(el.umNote, "Engel kaldırıldı.");
-    } catch (err) {
-      setNote(el.umNote, err.message || "Hata.", true);
+    } catch (error) {
+      setNote(el.umNote, error.message || "Engel kaldırılamadı.", true);
     }
   });
+
   el.btnReportUser.addEventListener("click", async () => {
     if (!state.selectedUser) return;
     const reason = prompt("Rapor nedeni:");
@@ -670,8 +745,8 @@ function wireEvents() {
     try {
       await reportUser(state.selectedUser.id, reason);
       setNote(el.umNote, "Rapor gönderildi.");
-    } catch (err) {
-      setNote(el.umNote, err.message || "Rapor başarısız.", true);
+    } catch (error) {
+      setNote(el.umNote, error.message || "Rapor gönderilemedi.", true);
     }
   });
 
@@ -684,9 +759,9 @@ function wireEvents() {
     e.preventDefault();
     try {
       const payload = {
-        username: el.pfUsername.value.trim().slice(0, 40),
-        city: el.pfCity.value.trim().slice(0, 80),
-        about: el.pfAbout.value.trim().slice(0, 280),
+        username: normalizeText(el.pfUsername.value, MAX_USERNAME_LENGTH),
+        city: normalizeText(el.pfCity.value, MAX_CITY_LENGTH),
+        about: String(el.pfAbout.value || "").trim().slice(0, MAX_ABOUT_LENGTH),
       };
       if (!payload.username) throw new Error("Kullanıcı adı boş olamaz.");
       const { data, error } = await supabase
@@ -701,23 +776,30 @@ function wireEvents() {
       updateMeBadge();
       await refreshPeoplePanels();
       setNote(el.pfNote, "Profil güncellendi.");
-    } catch (err) {
-      setNote(el.pfNote, err.message || "Profil kaydedilemedi.", true);
+    } catch (error) {
+      setNote(el.pfNote, error.message || "Profil kaydedilemedi.", true);
     }
   });
 
-  el.btnDmInbox.addEventListener("click", () => {
+  el.btnDmInbox.addEventListener("click", async () => {
     if (!state.users.length) return;
-    const best = state.users
+    const sorted = state.users
       .slice()
-      .sort((a, b) => (state.dmUnreadByUser.get(b.id) || 0) - (state.dmUnreadByUser.get(a.id) || 0))[0];
-    if (best) openDmWith(best);
+      .sort((a, b) => (state.dmUnreadByUser.get(b.id) || 0) - (state.dmUnreadByUser.get(a.id) || 0));
+    if (sorted[0]) await openDmWith(sorted[0]);
   });
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (!session) {
-      await logout();
+  const { data: authData } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (!session && state.me) {
+      await logout(true);
     }
+  });
+  state.authSubscription = authData.subscription;
+
+  window.addEventListener("beforeunload", () => {
+    unsubscribeRoom();
+    unsubscribeDms();
+    state.authSubscription?.unsubscribe?.();
   });
 }
 
@@ -728,8 +810,8 @@ async function bootstrap() {
   renderBlocked();
   try {
     await restoreSession();
-  } catch (err) {
-    setNote(el.authNote, err.message || "Başlatma hatası.", true);
+  } catch (error) {
+    setNote(el.authNote, error.message || "Başlatma hatası.", true);
     toggleAuth(false);
   }
 }
