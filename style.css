@@ -295,3 +295,23 @@ body {
   .msg { max-width: 92%; }
   .chat-header { padding: 10px; }
 }
+
+.msg__user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.msg__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.msg__avatar:hover {
+  transform: scale(1.15);
+}
