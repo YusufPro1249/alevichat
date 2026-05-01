@@ -4,12 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AleviChat Supabase</title>
+    <meta name="supabase-url" content="" />
+    <meta name="supabase-anon-key" content="" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <script src="./config.js"></script>
+    <script>
+      window.__ALEVICHAT_CONFIG__ = window.__ALEVICHAT_CONFIG__ || {
+        // Netlify deploy'da gerçek değerlerle doldurun.
+        SUPABASE_URL: "",
+        SUPABASE_ANON_KEY: "",
+      };
+    </script>
+
     <div class="app">
       <aside class="left">
         <div class="brand">
@@ -63,6 +74,7 @@
               <button id="btnLogin" class="btn" type="submit">Giriş Yap</button>
               <button id="btnSignup" class="btn btn--ghost" type="submit">Kayıt Ol</button>
             </div>
+            <p class="muted">Kayıt için kullanıcı adı zorunludur.</p>
             <p id="authNote" class="note"></p>
           </form>
         </section>
@@ -103,6 +115,7 @@
           <input id="pfUsername" class="input" required maxlength="40" placeholder="Kullanıcı adı" />
           <input id="pfCity" class="input" maxlength="80" placeholder="Şehir" />
           <textarea id="pfAbout" class="input" rows="4" maxlength="280" placeholder="Hakkında"></textarea>
+          <input id="pfRole" class="input" maxlength="16" placeholder="Rol (admin/user)" disabled />
           <div class="row row--end">
             <button class="btn" type="submit">Kaydet</button>
           </div>
