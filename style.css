@@ -147,6 +147,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  scroll-behavior: smooth;
 }
 
 .messages::-webkit-scrollbar { width: 10px; }
@@ -317,3 +318,28 @@ body {
 }
 
 
+.user-panel {
+  width: 260px;
+  border-left: 1px solid var(--border);
+  background: #0f1730;
+  padding: 12px;
+  overflow: auto;
+}
+
+.user-box {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.user-box img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+.user-panel h3 {
+  margin: 0 0 10px;
+}
