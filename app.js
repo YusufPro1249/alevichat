@@ -217,26 +217,26 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
     <div class="msg__text">${escapeHtml(message || "")}</div>
   `;
 
-  // USER MODAL AÇMA (AVATAR)
+  // AVATAR TIKLAMA -> SAĞ PANELİ AÇ
   const avatar = row.querySelector(".msg__avatar");
   if (avatar && !mine) {
     avatar.addEventListener("click", () => {
-      const user = state.users.find((u) => u.id === user_id);
-      if (user) openUserModal(user);
+      const u = state.users.find((u) => u.id === user_id);
+      if (u) openUserDetailPanel(u);
     });
   }
 
-  // USER MODAL AÇMA (İSİM)
+  // İSİM TIKLAMA -> SAĞ PANELİ AÇ
   if (!mine) {
     const btn = row.querySelector(".msg__name");
     btn?.addEventListener("click", () => {
-      const user = state.users.find((u) => u.id === user_id);
-      if (user) openUserModal(user);
+      const u = state.users.find((u) => u.id === user_id);
+      if (u) openUserDetailPanel(u);
     });
   }
 
   el.messages.appendChild(row);
-  scrollToBottom();
+  if (autoScroll) scrollToBottom();
 }
 function canInteractWith(uid) {
   if (!uid || uid === state.me?.id) return false;
