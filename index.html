@@ -1,188 +1,193 @@
 <!doctype html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alevi Sohbet & Evlilik</title>
-  <meta name="supabase-url" content="" />
-  <meta name="supabase-anon-key" content="" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Alevi Sohbet & Evlilik</title>
+<meta name="supabase-url" content="" />
+<meta name="supabase-anon-key" content="" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <script src="./config.js"></script>
-  <script>
-    window.__ALEVICHAT_CONFIG__ = window.__ALEVICHAT_CONFIG__ || {
-      SUPABASE_URL: "https://pxfryssfvwdzgbkgrcud.supabase.co",
-      SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4ZnJ5c3Nmdndkemdia2dyY3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjIwMzksImV4cCI6MjA5MzE5ODAzOX0.S__p_B4G63ifd64FsHOR9MlRpulSRLMbSvYdbnNhEUQ",
-    };
-  </script>
+<script src="./config.js"></script>
+<script>
+window.__ALEVICHAT_CONFIG__ = window.__ALEVICHAT_CONFIG__ || {
+SUPABASE_URL: "https://pxfryssfvwdzgbkgrcud.supabase.co",
+SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4ZnJ5c3Nmdndkemdia2dyY3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjIwMzksImV4cCI6MjA5MzE5ODAzOX0.S__p_B4G63ifd64FsHOR9MlRpulSRLMbSvYdbnNhEUQ",
+};
+</script>
 
-  <div class="layout">
-    <!-- SOL SIDEBAR -->
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand__logo">A</div>
-        <div>
-          <h1>Alevi Sohbet</h1>
-          <p>Evlilik & Realtime Platform</p>
-        </div>
-      </div>
-      <section class="panel">
-        <div class="panel__title">Odalar</div>
-        <div id="roomList" class="stack"></div>
-      </section>
-      <section class="panel">
-        <div class="panel__title">Kullanıcılar</div>
-        <input id="userSearch" class="input" type="text" placeholder="Kullanıcı ara..." />
-        <div id="userList" class="stack"></div>
-      </section>
-      <section class="panel">
-        <div class="panel__title">Engellenenler</div>
-        <div id="blockedList" class="stack"></div>
-      </section>
-      <section class="profile-card">
-        <img id="myAvatar" class="avatar" alt="profil" src="https://placehold.co/64x64" />
-        <div class="profile-card__info">
-          <div id="myUsername" class="profile-card__name">@misafir</div>
-          <div id="mySub" class="profile-card__sub">Giriş yapmadınız</div>
-        </div>
-        <button id="btnProfile" class="btn btn--ghost" type="button">Düzenle</button>
-      </section>
-    </aside>
+<div class="layout">
 
-    <!-- ANA CHAT ALANI -->
-    <main class="chat-shell">
-      <header class="chat-header">
-        <div>
-          <h2 id="chatTitle"># genel-sohbet</h2>
-          <p id="chatSub">Alevi topluluğu canlı sohbet</p>
-        </div>
-        <div class="chat-header__actions">
-          <button id="btnDmInbox" class="btn btn--ghost" type="button">DM Kutusu</button>
-          <span id="meBadge" class="badge">Giriş yok</span>
-          <button id="btnLogout" class="btn btn--ghost" type="button">Çıkış</button>
-        </div>
-      </header>
+<!-- SOL SIDEBAR -->
+<aside class="sidebar">
+<div class="brand">
+<div class="brand__logo">A</div>
+<div>
+<h1>Alevi Sohbet</h1>
+<p>Evlilik & Realtime Platform</p>
+</div>
+</div>
+<section class="panel">
+<div class="panel__title">Odalar</div>
+<div id="roomList" class="stack"></div>
+</section>
+<section class="panel">
+<div class="panel__title">Kullanıcılar</div>
+<input id="userSearch" class="input" type="text" placeholder="Kullanıcı ara..." />
+<div id="userList" class="stack"></div>
+</section>
+<section class="panel">
+<div class="panel__title">Engellenenler</div>
+<div id="blockedList" class="stack"></div>
+</section>
+<section class="profile-card">
+<img id="myAvatar" class="avatar" alt="profil" src="https://placehold.co/64x64" />
+<div class="profile-card__info">
+<div id="myUsername" class="profile-card__name">@misafir</div>
+<div id="mySub" class="profile-card__sub">Giriş yapmadınız</div>
+</div>
+<button id="btnProfile" class="btn btn--ghost" type="button">Düzenle</button>
+</section>
+</aside>
 
-      <!-- CHAT BODY: MESAJLAR + SAĞ PANEL -->
-      <div class="chat-body">
-        <section id="chatCard" class="chat-card hidden">
-          <div id="messages" class="messages"></div>
-          <form id="composer" class="composer">
-            <input id="messageInput" class="input" maxlength="1000" placeholder="Mesaj yaz..." required />
-            <button class="btn btn--primary" type="submit">Gönder</button>
-          </form>
-        </section>
+<!-- ANA CHAT ALANI -->
+<main class="chat-shell">
 
-        <!-- SAĞ KULLANICI DETAY PANELİ -->
-        <aside id="userDetailPanel" class="user-detail-panel hidden">
-          <button id="btnCloseUserDetail" class="user-detail__close" type="button">&times;</button>
-          <div class="user-detail__header">
-            <img id="udAvatar" class="user-detail__avatar" src="https://placehold.co/80x80" alt="kullanıcı" />
-            <h3 id="udFullName" class="user-detail__name">-</h3>
-            <p id="udUsername" class="user-detail__username">@kullanici</p>
-          </div>
-          <dl class="user-detail__info">
-            <dt>Şehir</dt>
-            <dd id="udCity">-</dd>
-            <dt>Yaş</dt>
-            <dd id="udAge">-</dd>
-            <dt>Hobiler</dt>
-            <dd id="udHobbies">-</dd>
-            <dt>Hakkında</dt>
-            <dd id="udAbout">-</dd>
-            <dt>Rol</dt>
-            <dd id="udRole">-</dd>
-          </dl>
-          <div class="user-detail__actions">
-            <button id="udBtnDm" class="btn btn--primary" type="button">DM At</button>
-            <button id="udBtnBlock" class="btn btn--ghost" type="button">Engelle</button>
-            <button id="udBtnUnblock" class="btn btn--ghost hidden" type="button">Engeli Kaldır</button>
-            <button id="udBtnReport" class="btn btn--ghost" type="button">Rapor Et</button>
-            <p id="udNote" class="note"></p>
-          </div>
-        </aside>
-      </div>
-    </main>
-  </div>
+<header class="chat-header">
+<div>
+<h2 id="chatTitle"># genel-sohbet</h2>
+<p id="chatSub">Alevi topluluğu canlı sohbet</p>
+</div>
+<div class="chat-header__actions">
+<button id="btnDmInbox" class="btn btn--ghost" type="button">DM Kutusu</button>
+<span id="meBadge" class="badge">Giriş yok</span>
+<button id="btnLogout" class="btn btn--ghost" type="button">Çıkış</button>
+</div>
+</header>
 
-  <!-- GİRİŞ / KAYIT OVERLAY -->
-  <div id="authCard" class="auth-overlay">
-    <div class="auth-modal">
-      <div class="tabs">
-        <button id="btnShowLogin" class="tab tab--active" type="button">Giriş</button>
-        <button id="btnShowSignup" class="tab" type="button">Kayıt</button>
-      </div>
-      <form id="loginForm" class="stack">
-        <h2>Giriş Yap</h2>
-        <p class="muted">Email veya kullanıcı adı + şifre ile giriş yap.</p>
-        <input id="loginIdentifier" class="input" type="text" placeholder="Email veya kullanıcı adı" required />
-        <input id="loginPassword" class="input" type="password" placeholder="Şifre" required />
-        <button class="btn btn--primary" type="submit">Giriş Yap</button>
-      </form>
-      <form id="signupForm" class="stack hidden">
-        <h2>Kayıt Ol</h2>
-        <p class="muted">Evlilik platformu için profilini eksiksiz doldur.</p>
-        <input id="suUsername" class="input" type="text" maxlength="40" placeholder="Kullanıcı adı" required />
-        <input id="suFullName" class="input" type="text" maxlength="80" placeholder="Ad Soyad" required />
-        <input id="suEmail" class="input" type="email" maxlength="120" placeholder="Email" required />
-        <input id="suPhone" class="input" type="tel" maxlength="30" placeholder="Telefon" required />
-        <input id="suPassword" class="input" type="password" minlength="6" placeholder="Şifre" required />
-        <input id="suPassword2" class="input" type="password" minlength="6" placeholder="Şifre tekrar" required />
-        <input id="suAge" class="input" type="number" min="18" max="99" placeholder="Yaş" required />
-        <input id="suCity" class="input" type="text" maxlength="80" placeholder="İl" required />
-        <input id="suAvatarUrl" class="input" type="url" maxlength="500" placeholder="Profil foto URL (opsiyonel)" />
-        <textarea id="suAbout" class="input" rows="3" maxlength="500" placeholder="Açıklama"></textarea>
-        <button class="btn btn--primary" type="submit">Kayıt Ol</button>
-      </form>
-      <p id="authNote" class="note"></p>
-    </div>
-  </div>
+<!-- CHAT BODY: MESAJLAR + SAĞ PANEL -->
+<div class="chat-body">
 
-  <!-- KULLANICI MODAL (yedek) -->
-  <div id="userModal" class="modal hidden">
-    <div class="modal__box">
-      <div class="modal__head">
-        <strong id="umTitle">@kullanici</strong>
-        <button id="btnCloseUserModal" class="btn btn--ghost" type="button">Kapat</button>
-      </div>
-      <div class="stack">
-        <button id="btnStartDm" class="btn btn--primary" type="button">DM At</button>
-        <button id="btnBlockUser" class="btn btn--ghost" type="button">Engelle</button>
-        <button id="btnUnblockUser" class="btn btn--ghost" type="button">Engeli Kaldır</button>
-        <button id="btnReportUser" class="btn btn--ghost" type="button">Rapor Et</button>
-        <p id="umNote" class="note"></p>
-      </div>
-    </div>
-  </div>
+<!-- MESAJ ALANI -->
+<section id="chatCard" class="chat-card hidden">
+<div id="messages" class="messages"></div>
+<form id="composer" class="composer">
+<input id="messageInput" class="input" maxlength="1000" placeholder="Mesaj yaz..." required />
+<button class="btn btn--primary" type="submit">Gönder</button>
+</form>
+</section>
 
-  <!-- PROFİL DÜZENLEME MODAL -->
-  <div id="profileModal" class="modal hidden">
-    <div class="modal__box">
-      <div class="modal__head">
-        <strong>Profil Düzenle</strong>
-        <button id="btnCloseProfile" class="btn btn--ghost" type="button">Kapat</button>
-      </div>
-      <form id="profileForm" class="stack">
-        <input id="pfUsername" class="input" maxlength="40" placeholder="Kullanıcı adı" disabled />
-        <input id="pfFullName" class="input" maxlength="80" placeholder="Ad Soyad" />
-        <input id="pfAge" class="input" type="number" min="18" max="99" placeholder="Yaş" />
-        <input id="pfCity" class="input" maxlength="80" placeholder="İl" />
-        <input id="pfHobbies" class="input" maxlength="180" placeholder="Hobiler (virgül ile)" />
-        <input id="pfAvatarUrl" class="input" maxlength="500" placeholder="Foto URL" />
-        <textarea id="pfAbout" class="input" rows="4" maxlength="500" placeholder="Açıklama"></textarea>
-        <input id="pfRole" class="input" maxlength="16" placeholder="Rol" disabled />
-        <div class="row row--end">
-          <button class="btn btn--primary" type="submit">Kaydet</button>
-        </div>
-        <p id="pfNote" class="note"></p>
-      </form>
-    </div>
-  </div>
+<!-- SAĞ KULLANICI DETAY PANELİ -->
+<aside id="userDetailPanel" class="user-detail-panel" style="display:none;">
+<button id="btnCloseUserDetail" class="user-detail__close" type="button">&times;</button>
+<div class="user-detail__header">
+<img id="udAvatar" class="user-detail__avatar" src="https://placehold.co/80x80" alt="kullanıcı" />
+<h3 id="udFullName" class="user-detail__name">-</h3>
+<p id="udUsername" class="user-detail__username">@kullanici</p>
+</div>
+<dl class="user-detail__info">
+<dt>Şehir</dt>
+<dd id="udCity">-</dd>
+<dt>Yaş</dt>
+<dd id="udAge">-</dd>
+<dt>Hobiler</dt>
+<dd id="udHobbies">-</dd>
+<dt>Hakkında</dt>
+<dd id="udAbout">-</dd>
+<dt>Rol</dt>
+<dd id="udRole">-</dd>
+</dl>
+<div class="user-detail__actions">
+<button id="udBtnDm" class="btn btn--primary" type="button">DM At</button>
+<button id="udBtnBlock" class="btn btn--ghost" type="button">Engelle</button>
+<button id="udBtnUnblock" class="btn btn--ghost" type="button" style="display:none;">Engeli Kaldır</button>
+<button id="udBtnReport" class="btn btn--ghost" type="button">Rapor Et</button>
+<p id="udNote" class="note"></p>
+</div>
+</aside>
 
-  <script type="module" src="./app.js"></script>
+</div>
+</main>
+</div>
+
+<!-- AUTH OVERLAY -->
+<div id="authCard" class="auth-overlay">
+<div class="auth-modal">
+<div class="tabs">
+<button id="btnShowLogin" class="tab tab--active" type="button">Giriş</button>
+<button id="btnShowSignup" class="tab" type="button">Kayıt</button>
+</div>
+<form id="loginForm" class="stack">
+<h2>Giriş Yap</h2>
+<p class="muted">Email veya kullanıcı adı + şifre ile giriş yap.</p>
+<input id="loginIdentifier" class="input" type="text" placeholder="Email veya kullanıcı adı" required />
+<input id="loginPassword" class="input" type="password" placeholder="Şifre" required />
+<button class="btn btn--primary" type="submit">Giriş Yap</button>
+</form>
+<form id="signupForm" class="stack hidden">
+<h2>Kayıt Ol</h2>
+<p class="muted">Evlilik platformu için profilini eksiksiz doldur.</p>
+<input id="suUsername" class="input" type="text" maxlength="40" placeholder="Kullanıcı adı" required />
+<input id="suFullName" class="input" type="text" maxlength="80" placeholder="Ad Soyad" required />
+<input id="suEmail" class="input" type="email" maxlength="120" placeholder="Email" required />
+<input id="suPhone" class="input" type="tel" maxlength="30" placeholder="Telefon" required />
+<input id="suPassword" class="input" type="password" minlength="6" placeholder="Şifre" required />
+<input id="suPassword2" class="input" type="password" minlength="6" placeholder="Şifre tekrar" required />
+<input id="suAge" class="input" type="number" min="18" max="99" placeholder="Yaş" required />
+<input id="suCity" class="input" type="text" maxlength="80" placeholder="İl" required />
+<input id="suAvatarUrl" class="input" type="url" maxlength="500" placeholder="Profil foto URL (opsiyonel)" />
+<textarea id="suAbout" class="input" rows="3" maxlength="500" placeholder="Açıklama"></textarea>
+<button class="btn btn--primary" type="submit">Kayıt Ol</button>
+</form>
+<p id="authNote" class="note"></p>
+</div>
+</div>
+
+<!-- USER MODAL -->
+<div id="userModal" class="modal hidden">
+<div class="modal__box">
+<div class="modal__head">
+<strong id="umTitle">@kullanici</strong>
+<button id="btnCloseUserModal" class="btn btn--ghost" type="button">Kapat</button>
+</div>
+<div class="stack">
+<button id="btnStartDm" class="btn btn--primary" type="button">DM At</button>
+<button id="btnBlockUser" class="btn btn--ghost" type="button">Engelle</button>
+<button id="btnUnblockUser" class="btn btn--ghost" type="button">Engeli Kaldır</button>
+<button id="btnReportUser" class="btn btn--ghost" type="button">Rapor Et</button>
+<p id="umNote" class="note"></p>
+</div>
+</div>
+</div>
+
+<!-- PROFİL MODAL -->
+<div id="profileModal" class="modal hidden">
+<div class="modal__box">
+<div class="modal__head">
+<strong>Profil Düzenle</strong>
+<button id="btnCloseProfile" class="btn btn--ghost" type="button">Kapat</button>
+</div>
+<form id="profileForm" class="stack">
+<input id="pfUsername" class="input" maxlength="40" placeholder="Kullanıcı adı" disabled />
+<input id="pfFullName" class="input" maxlength="80" placeholder="Ad Soyad" />
+<input id="pfAge" class="input" type="number" min="18" max="99" placeholder="Yaş" />
+<input id="pfCity" class="input" maxlength="80" placeholder="İl" />
+<input id="pfHobbies" class="input" maxlength="180" placeholder="Hobiler (virgül ile)" />
+<input id="pfAvatarUrl" class="input" maxlength="500" placeholder="Foto URL" />
+<textarea id="pfAbout" class="input" rows="4" maxlength="500" placeholder="Açıklama"></textarea>
+<input id="pfRole" class="input" maxlength="16" placeholder="Rol" disabled />
+<div class="row row--end">
+<button class="btn btn--primary" type="submit">Kaydet</button>
+</div>
+<p id="pfNote" class="note"></p>
+</form>
+</div>
+</div>
+
+<script type="module" src="./app.js"></script>
 </body>
 </html>
