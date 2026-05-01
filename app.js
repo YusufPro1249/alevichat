@@ -169,20 +169,6 @@ function shouldStickBottom() {
 }
 
 function addMessageRow({ id, user_id, username, message, created_at, modeKey }) {
-   row.innerHTML = `
-  <div class="msg__meta">
-    <div class="msg__user">
-      <img class="msg__avatar" src="https://placehold.co/32x32" data-user="${user_id}" />
-      <button class="msg__name" type="button" ${mine ? "disabled" : ""}>
-        ${escapeHtml(username || "user")}
-      </button>
-    </div>
-    <span>${formatTime(created_at)}</span>
-  </div>
-  <div class="msg__text">${escapeHtml(message || "")}</div>
-`;
-
-  
   if (!id) return;
   const dedupe = `${modeKey}:${id}`;
   if (state.renderedIds.has(dedupe)) return;
