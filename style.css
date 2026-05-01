@@ -315,3 +315,31 @@ body {
 .msg__avatar:hover {
   transform: scale(1.15);
 }
+
+
+.profile-panel {
+  position: fixed;
+  right: 0;
+  top: 74px;
+  width: 260px;
+  height: calc(100vh - 74px);
+  background: #101a33;
+  border-left: 1px solid var(--border);
+  padding: 14px;
+  overflow: auto;
+  z-index: 200;
+}
+
+.pp-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.pp-info p {
+  font-size: 13px;
+  color: #cfe0ff;
+  margin: 6px 0;
+}
