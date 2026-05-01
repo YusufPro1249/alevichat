@@ -89,6 +89,12 @@ const el = {
   pfNote: document.getElementById("pfNote"),
 };
 
+function scrollToBottom(force = false) {
+  setTimeout(() => {
+    el.messages.scrollTop = el.messages.scrollHeight;
+  }, force ? 50 : 0);
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
