@@ -220,7 +220,7 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
   }
 
   el.messages.appendChild(row);
-  if (autoScroll) el.messages.scrollTop = el.messages.scrollHeight;
+  scrollToBottom();
 }
 function canInteractWith(uid) {
   if (!uid || uid === state.me?.id) return false;
