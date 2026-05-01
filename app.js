@@ -105,6 +105,30 @@ const el = {
   udNote: document.getElementById("udNote"),
 };
 
+function openUserDetailPanel(user) {
+  state.selectedUser = user;
+  
+  el.udAvatar.src = user.avatar_url || "https://placehold.co/80x80";
+  el.udFullName.textContent = user.full_name || "-";
+  el.udUsername.textContent = `@${user.username}`;
+  el.udCity.textContent = user.city || "-";
+  el.udAge.textContent = user.age || "-";
+  el.udHobbies.textContent = user.hobbies || "-";
+  el.udAbout.textContent = user.about || "-";
+  el.udRole.textContent = user.role || "user";
+  
+  el.udBtnBlock.classList.toggle("hidden", state.blockedByMe.has(user.id));
+  el.udBtnUnblock.classList.toggle("hidden", !state.blockedByMe.has(user.id));
+  setNote(el.udNote, state.blockedMe.has(user.id) ? "Bu kullanıcı sizi engellemiş." : "");
+  
+  el.userDetailPanel.classList.remove("hidden");
+}
+
+function closeUserDetailPanel() {
+  el.userDetailPanel.classList.add("hidden");
+}
+
+
 function scrollToBottom(force = false) {
   setTimeout(() => {
     el.messages.scrollTop = el.messages.scrollHeight;
