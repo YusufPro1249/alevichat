@@ -87,47 +87,7 @@ const el = {
   pfAvatarUrl: document.getElementById("pfAvatarUrl"),
   pfRole: document.getElementById("pfRole"),
   pfNote: document.getElementById("pfNote"),
-
-  userDetailPanel: document.getElementById("userDetailPanel"),
-  btnCloseUserDetail: document.getElementById("btnCloseUserDetail"),
-  udAvatar: document.getElementById("udAvatar"),
-  udFullName: document.getElementById("udFullName"),
-  udUsername: document.getElementById("udUsername"),
-  udCity: document.getElementById("udCity"),
-  udAge: document.getElementById("udAge"),
-  udHobbies: document.getElementById("udHobbies"),
-  udAbout: document.getElementById("udAbout"),
-  udRole: document.getElementById("udRole"),
-  udBtnDm: document.getElementById("udBtnDm"),
-  udBtnBlock: document.getElementById("udBtnBlock"),
-  udBtnUnblock: document.getElementById("udBtnUnblock"),
-  udBtnReport: document.getElementById("udBtnReport"),
-  udNote: document.getElementById("udNote"),
 };
-
-function openUserDetailPanel(user) {
-  state.selectedUser = user;
-  
-  el.udAvatar.src = user.avatar_url || "https://placehold.co/80x80";
-  el.udFullName.textContent = user.full_name || "-";
-  el.udUsername.textContent = `@${user.username}`;
-  el.udCity.textContent = user.city || "-";
-  el.udAge.textContent = user.age || "-";
-  el.udHobbies.textContent = user.hobbies || "-";
-  el.udAbout.textContent = user.about || "-";
-  el.udRole.textContent = user.role || "user";
-  
-  el.udBtnBlock.classList.toggle("hidden", state.blockedByMe.has(user.id));
-  el.udBtnUnblock.classList.toggle("hidden", !state.blockedByMe.has(user.id));
-  setNote(el.udNote, state.blockedMe.has(user.id) ? "Bu kullanıcı sizi engellemiş." : "");
-  
-  el.userDetailPanel.classList.remove("hidden");
-}
-
-function closeUserDetailPanel() {
-  el.userDetailPanel.classList.add("hidden");
-}
-
 
 function scrollToBottom(force = false) {
   setTimeout(() => {
@@ -241,26 +201,26 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
     <div class="msg__text">${escapeHtml(message || "")}</div>
   `;
 
-  // AVATAR TIKLAMA -> SAĞ PANELİ AÇ
+  // USER MODAL AÇMA (AVATAR)
   const avatar = row.querySelector(".msg__avatar");
   if (avatar && !mine) {
     avatar.addEventListener("click", () => {
-      const u = state.users.find((u) => u.id === user_id);
-      if (u) openUserDetailPanel(u);
+      const user = state.users.find((u) => u.id === user_id);
+      if (user) openUserModal(user);
     });
   }
 
-  // İSİM TIKLAMA -> SAĞ PANELİ AÇ
+  // USER MODAL AÇMA (İSİM)
   if (!mine) {
     const btn = row.querySelector(".msg__name");
     btn?.addEventListener("click", () => {
-      const u = state.users.find((u) => u.id === user_id);
-      if (u) openUserDetailPanel(u);
+      const user = state.users.find((u) => u.id === user_id);
+      if (user) openUserModal(user);
     });
   }
 
   el.messages.appendChild(row);
-  if (autoScroll) scrollToBottom();
+  scrollToBottom();
 }
 function canInteractWith(uid) {
   if (!uid || uid === state.me?.id) return false;
