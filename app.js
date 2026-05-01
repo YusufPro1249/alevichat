@@ -87,11 +87,32 @@ const el = {
   pfAvatarUrl: document.getElementById("pfAvatarUrl"),
   pfRole: document.getElementById("pfRole"),
   pfNote: document.getElementById("pfNote"),
+
+  // SAĞ PANEL
+  userDetailPanel: document.getElementById("userDetailPanel"),
+  btnCloseUserDetail: document.getElementById("btnCloseUserDetail"),
+  udAvatar: document.getElementById("udAvatar"),
+  udFullName: document.getElementById("udFullName"),
+  udUsername: document.getElementById("udUsername"),
+  udCity: document.getElementById("udCity"),
+  udAge: document.getElementById("udAge"),
+  udHobbies: document.getElementById("udHobbies"),
+  udAbout: document.getElementById("udAbout"),
+  udRole: document.getElementById("udRole"),
+  udBtnDm: document.getElementById("udBtnDm"),
+  udBtnBlock: document.getElementById("udBtnBlock"),
+  udBtnUnblock: document.getElementById("udBtnUnblock"),
+  udBtnReport: document.getElementById("udBtnReport"),
+  udNote: document.getElementById("udNote"),
 };
+
+// ========== YARDIMCI FONKSİYONLAR ==========
 
 function scrollToBottom(force = false) {
   setTimeout(() => {
-    el.messages.scrollTop = el.messages.scrollHeight;
+    if (el.messages) {
+      el.messages.scrollTop = el.messages.scrollHeight;
+    }
   }, force ? 50 : 0);
 }
 
@@ -183,7 +204,6 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
 
   const autoScroll = shouldStickBottom();
   const mine = state.me && user_id === state.me.id;
-
   const user = state.users.find((u) => u.id === user_id);
 
   const row = document.createElement("article");
@@ -202,21 +222,21 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
     <div class="msg__text">${escapeHtml(message || "")}</div>
   `;
 
-  // Avatar tıklama -> modal aç
+  // Avatar tıklama -> Sağ panel
   const avatar = row.querySelector(".msg__avatar");
   if (avatar && !mine) {
     avatar.addEventListener("click", () => {
       const u = state.users.find((u) => u.id === user_id);
-      if (u) openUserModal(u);
+      if (u) openUserDetailPanel(u);
     });
   }
 
-  // İsim tıklama -> modal aç
+  // İsim tıklama -> Sağ panel
   if (!mine) {
     const btn = row.querySelector(".msg__name");
     btn?.addEventListener("click", () => {
       const u = state.users.find((u) => u.id === user_id);
-      if (u) openUserModal(u);
+      if (u) openUserDetailPanel(u);
     });
   }
 
@@ -319,7 +339,7 @@ function renderUsers() {
     btn.type = "button";
     btn.className = "chip";
     btn.textContent = unread > 0 ? `@${user.username} (${unread})` : `@${user.username}`;
-    btn.addEventListener("click", () => openUserModal(user));
+    btn.addEventListener("click", () => openUserDetailPanel(user));
     el.userList.appendChild(btn);
   }
 }
@@ -335,9 +355,35 @@ function renderBlocked() {
     const btn = document.createElement("button");
     btn.className = "chip";
     btn.textContent = `@${user.username}`;
-    btn.addEventListener("click", () => openUserModal(user));
+    btn.addEventListener("click", () => openUserDetailPanel(user));
     el.blockedList.appendChild(btn);
   }
+}
+
+// ========== SAĞ PANEL FONKSİYONLARI ==========
+
+function openUserDetailPanel(user) {
+  if (!user) return;
+  state.selectedUser = user;
+
+  el.udAvatar.src = user.avatar_url || "https://placehold.co/80x80";
+  el.udFullName.textContent = user.full_name || "-";
+  el.udUsername.textContent = `@${user.username}`;
+  el.udCity.textContent = user.city || "-";
+  el.udAge.textContent = user.age || "-";
+  el.udHobbies.textContent = user.hobbies || "-";
+  el.udAbout.textContent = user.about || "-";
+  el.udRole.textContent = user.role || "user";
+
+  el.udBtnBlock.classList.toggle("hidden", state.blockedByMe.has(user.id));
+  el.udBtnUnblock.classList.toggle("hidden", !state.blockedByMe.has(user.id));
+  setNote(el.udNote, state.blockedMe.has(user.id) ? "Bu kullanıcı sizi engellemiş." : "");
+
+  el.userDetailPanel.classList.remove("hidden");
+}
+
+function closeUserDetailPanel() {
+  el.userDetailPanel.classList.add("hidden");
 }
 
 function openUserModal(user) {
@@ -355,7 +401,7 @@ function closeUserModal() {
 
 function openProfileModal() {
   if (!state.profile) {
-    alert("Profil bilgisi henüz yüklenmedi. Lütfen tekrar deneyin.");
+    alert("Profil bilgisi henüz yüklenmedi.");
     return;
   }
   el.pfUsername.value = state.profile.username || "";
@@ -374,6 +420,8 @@ function closeProfileModal() {
   el.profileModal.classList.add("hidden");
 }
 
+// ========== VERİ YÜKLEME ==========
+
 async function loadRoomHistory(room) {
   const { data, error } = await supabase
     .from("messages")
@@ -387,7 +435,6 @@ async function loadRoomHistory(room) {
     if (state.blockedByMe.has(row.user_id) || state.blockedMe.has(row.user_id)) continue;
     addMessageRow({ ...row, modeKey: `room:${room}` });
   }
-  el.messages.scrollTop = el.messages.scrollHeight;
   scrollToBottom(true);
 }
 
@@ -401,9 +448,10 @@ async function loadDmHistory(otherId) {
     const name = row.from_user_id === state.me.id ? state.profile?.username : state.users.find((u) => u.id === row.from_user_id)?.username;
     addMessageRow({ id: row.id, user_id: row.from_user_id, username: name || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${otherId}` });
   }
-  el.messages.scrollTop = el.messages.scrollHeight;
   scrollToBottom(true);
 }
+
+// ========== REALTIME ==========
 
 function subscribeRoom(room) {
   state.roomChannel = supabase
@@ -443,6 +491,8 @@ function subscribeDms() {
     })
     .subscribe();
 }
+
+// ========== AKSİYONLAR ==========
 
 async function openRoom(room) {
   if (!ROOMS.some((r) => r.key === room)) return;
@@ -601,12 +651,15 @@ async function logout(skipRemote = false) {
   state.blockedMe.clear();
   state.dmUnreadByUser.clear();
   resetMessages();
+  closeUserDetailPanel();
   toggleAuth(false);
   updateMeBadge();
   renderRooms();
   renderUsers();
   renderBlocked();
 }
+
+// ========== EVENTLER ==========
 
 function wireEvents() {
   el.btnShowLogin.addEventListener("click", () => setAuthMode("login"));
@@ -672,6 +725,55 @@ function wireEvents() {
   });
 
   el.userSearch.addEventListener("input", renderUsers);
+
+  // SAĞ PANEL EVENTLERİ
+  el.btnCloseUserDetail.addEventListener("click", closeUserDetailPanel);
+
+  el.udBtnDm.addEventListener("click", async () => {
+    if (!state.selectedUser) return;
+    if (!canInteractWith(state.selectedUser.id)) {
+      alert("Bu kullanıcıyla DM engel nedeniyle kapalı.");
+      return;
+    }
+    await openDm(state.selectedUser);
+  });
+
+  el.udBtnBlock.addEventListener("click", async () => {
+    if (!state.selectedUser) return;
+    try {
+      await blockUser(state.selectedUser.id);
+      await refreshPanels();
+      openUserDetailPanel(state.selectedUser);
+      if (state.mode === "dm" && state.dmWith?.id === state.selectedUser.id) await openRoom(state.room);
+    } catch (error) {
+      setNote(el.udNote, error.message || "İşlem başarısız.", true);
+    }
+  });
+
+  el.udBtnUnblock.addEventListener("click", async () => {
+    if (!state.selectedUser) return;
+    try {
+      await unblockUser(state.selectedUser.id);
+      await refreshPanels();
+      openUserDetailPanel(state.selectedUser);
+    } catch (error) {
+      setNote(el.udNote, error.message || "İşlem başarısız.", true);
+    }
+  });
+
+  el.udBtnReport.addEventListener("click", async () => {
+    if (!state.selectedUser) return;
+    const reason = prompt("Rapor sebebi:");
+    if (!reason) return;
+    try {
+      await reportUser(state.selectedUser.id, reason);
+      setNote(el.udNote, "Rapor kaydedildi.");
+    } catch (error) {
+      setNote(el.udNote, error.message || "Rapor başarısız.", true);
+    }
+  });
+
+  // MODAL EVENTLERİ
   el.btnCloseUserModal.addEventListener("click", closeUserModal);
   el.userModal.addEventListener("click", (e) => {
     if (e.target === el.userModal) closeUserModal();
@@ -687,7 +789,6 @@ function wireEvents() {
       await blockUser(state.selectedUser.id);
       await refreshPanels();
       openUserModal(state.selectedUser);
-      setNote(el.umNote, "Kullanıcı engellendi.");
       if (state.mode === "dm" && state.dmWith?.id === state.selectedUser.id) await openRoom(state.room);
     } catch (error) {
       setNote(el.umNote, error.message || "İşlem başarısız.", true);
@@ -699,7 +800,6 @@ function wireEvents() {
       await unblockUser(state.selectedUser.id);
       await refreshPanels();
       openUserModal(state.selectedUser);
-      setNote(el.umNote, "Engel kaldırıldı.");
     } catch (error) {
       setNote(el.umNote, error.message || "İşlem başarısız.", true);
     }
@@ -716,7 +816,7 @@ function wireEvents() {
     }
   });
 
-  // Profil düzenleme eventleri
+  // PROFİL EVENTLERİ
   el.btnProfile.addEventListener("click", openProfileModal);
   el.btnCloseProfile.addEventListener("click", closeProfileModal);
   el.profileModal.addEventListener("click", (e) => {
@@ -769,6 +869,8 @@ function wireEvents() {
     state.authSub?.unsubscribe?.();
   });
 }
+
+// ========== BAŞLAT ==========
 
 async function bootstrap() {
   setAuthMode("login");
