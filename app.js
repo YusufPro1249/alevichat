@@ -176,16 +176,35 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
 
   const autoScroll = shouldStickBottom();
   const mine = state.me && user_id === state.me.id;
+
+  const user = state.users.find((u) => u.id === user_id);
+
   const row = document.createElement("article");
   row.className = `msg ${mine ? "msg--mine" : ""}`;
+
   row.innerHTML = `
     <div class="msg__meta">
-      <button class="msg__name" type="button" ${mine ? "disabled" : ""}>${escapeHtml(username || "user")}</button>
+      <div class="msg__user">
+        <img class="msg__avatar" src="${user?.avatar_url || "https://placehold.co/32x32"}" />
+        <button class="msg__name" type="button" ${mine ? "disabled" : ""}>
+          ${escapeHtml(username || "user")}
+        </button>
+      </div>
       <span>${formatTime(created_at)}</span>
     </div>
     <div class="msg__text">${escapeHtml(message || "")}</div>
   `;
 
+  // USER MODAL AÇMA (AVATAR)
+  const avatar = row.querySelector(".msg__avatar");
+  if (avatar && !mine) {
+    avatar.addEventListener("click", () => {
+      const user = state.users.find((u) => u.id === user_id);
+      if (user) openUserModal(user);
+    });
+  }
+
+  // USER MODAL AÇMA (İSİM)
   if (!mine) {
     const btn = row.querySelector(".msg__name");
     btn?.addEventListener("click", () => {
@@ -197,7 +216,6 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
   el.messages.appendChild(row);
   if (autoScroll) el.messages.scrollTop = el.messages.scrollHeight;
 }
-
 function canInteractWith(uid) {
   if (!uid || uid === state.me?.id) return false;
   if (state.blockedByMe.has(uid)) return false;
