@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supabase Realtime Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand__dot"></div>
+          <div>
+            <h1>Realtime Chat</h1>
+            <p>Supabase + Vanilla JS</p>
+          </div>
+        </div>
+
+        <section class="panel">
+          <h2>Odalar</h2>
+          <div id="roomList" class="room-list"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Kullanıcılar (DM)</h2>
+          <div id="userList" class="user-list"></div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <strong id="chatTitle"># genel</strong>
+            <p id="chatSubtitle">Oda sohbeti</p>
+          </div>
+          <div class="topbar__actions">
+            <span id="meBadge" class="me-badge">Giriş yok</span>
+            <button id="btnLogout" class="btn btn--ghost" type="button">Çıkış</button>
+          </div>
+        </header>
+
+        <section id="authCard" class="auth-card">
+          <h2>Giriş / Kayıt</h2>
+          <form id="authForm" class="auth-form">
+            <input id="authEmail" type="email" placeholder="Email" required />
+            <input id="authPassword" type="password" placeholder="Şifre" required minlength="6" />
+            <input id="authUsername" type="text" placeholder="Kullanıcı adı (kayıtta)" />
+            <div class="auth-actions">
+              <button class="btn" id="btnLogin" type="submit" data-mode="login">Giriş Yap</button>
+              <button class="btn btn--ghost" id="btnSignup" type="submit" data-mode="signup">Kayıt Ol</button>
+            </div>
+            <p id="authNote" class="note"></p>
+          </form>
+        </section>
+
+        <section id="chatCard" class="chat-card hidden">
+          <div id="messages" class="messages"></div>
+          <form id="messageForm" class="composer">
+            <input
+              id="messageInput"
+              type="text"
+              maxlength="1000"
+              placeholder="Mesaj yaz..."
+              autocomplete="off"
+              required
+            />
+            <button class="btn" type="submit">Gönder</button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
