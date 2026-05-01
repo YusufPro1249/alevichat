@@ -87,6 +87,22 @@ const el = {
   pfAvatarUrl: document.getElementById("pfAvatarUrl"),
   pfRole: document.getElementById("pfRole"),
   pfNote: document.getElementById("pfNote"),
+
+  userDetailPanel: document.getElementById("userDetailPanel"),
+  btnCloseUserDetail: document.getElementById("btnCloseUserDetail"),
+  udAvatar: document.getElementById("udAvatar"),
+  udFullName: document.getElementById("udFullName"),
+  udUsername: document.getElementById("udUsername"),
+  udCity: document.getElementById("udCity"),
+  udAge: document.getElementById("udAge"),
+  udHobbies: document.getElementById("udHobbies"),
+  udAbout: document.getElementById("udAbout"),
+  udRole: document.getElementById("udRole"),
+  udBtnDm: document.getElementById("udBtnDm"),
+  udBtnBlock: document.getElementById("udBtnBlock"),
+  udBtnUnblock: document.getElementById("udBtnUnblock"),
+  udBtnReport: document.getElementById("udBtnReport"),
+  udNote: document.getElementById("udNote"),
 };
 
 function scrollToBottom(force = false) {
