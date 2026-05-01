@@ -383,6 +383,7 @@ async function loadRoomHistory(room) {
     addMessageRow({ ...row, modeKey: `room:${room}` });
   }
   el.messages.scrollTop = el.messages.scrollHeight;
+  scrollToBottom(true);
 }
 
 async function loadDmHistory(otherId) {
@@ -396,6 +397,7 @@ async function loadDmHistory(otherId) {
     addMessageRow({ id: row.id, user_id: row.from_user_id, username: name || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${otherId}` });
   }
   el.messages.scrollTop = el.messages.scrollHeight;
+  scrollToBottom(true);
 }
 
 function subscribeRoom(room) {
