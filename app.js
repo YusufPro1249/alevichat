@@ -402,7 +402,12 @@ function closeUserModal() {
 }
 
 function openProfileModal() {
-  if (!state.profile) return;
+  console.log("openProfileModal called, profile:", state.profile);
+  if (!state.profile) {
+    console.log("Profile null, cannot open modal");
+    alert("Profil bilgisi henüz yüklenmedi. Lütfen tekrar deneyin.");
+    return;
+  }
   el.pfUsername.value = state.profile.username || "";
   el.pfFullName.value = state.profile.full_name || "";
   el.pfAge.value = state.profile.age || "";
