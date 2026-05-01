@@ -539,7 +539,7 @@ async function signup(payload) {
 
   const profilePayload = {
     id: data.user.id,
-    email: payload.email,
+    email: payload.username + "@local.app",
     username: payload.username,
     full_name: payload.fullName,
     phone: payload.phone,
