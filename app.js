@@ -563,10 +563,16 @@ function openProfileModal() {
   el.pfCity.value = state.profile.city || "";
   el.pfHobbies.value = state.profile.hobbies || "";
   el.pfAbout.value = state.profile.about || "";
-  el.pfAvatarUrl.value = state.profile.avatar_url || "";
   el.pfRole.value = state.profile.role || "user";
   setNote(el.pfNote, "");
   el.profileModal.classList.remove("hidden");
+  
+  // Dosya input'unu temizle
+  if (el.pfAvatarFile) el.pfAvatarFile.value = "";
+  if (el.pfPreview) {
+    el.pfPreview.src = state.profile.avatar_url || "https://placehold.co/80x80";
+    el.pfPreview.style.display = "block";
+  }
 }
 
 function closeProfileModal() { el.profileModal.classList.add("hidden"); }
