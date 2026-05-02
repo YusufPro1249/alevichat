@@ -642,13 +642,39 @@ async function sendRoomMessage(text) {
 }
 
 async function sendDmMessage(text) {
+  // Ban kontrolü
   const isBanned = await checkUserBan(state.me.id);
   if (isBanned) { alert("Banlandığınız için mesaj gönderemezsiniz."); return; }
+  
   if (!state.dmWith) throw new Error("DM seçilmedi.");
   if (!canInteractWith(state.dmWith.id)) throw new Error("Engel nedeniyle DM kapalı.");
+  
   const clean = sanitizeMessage(text);
   if (!clean) throw new Error("Boş mesaj gönderilemez.");
-  await supabase.from("dms").insert({ from_user_id: state.me.id, to_user_id: state.dmWith.id, message: clean });
+  
+  // Küfür kontrolü
+  const badWords = detectBadWords(clean);
+  if (badWords.length > 0) {
+    await banUser(state.me.id, `Küfür (DM): ${badWords.join(', ')}`, "1");
+    
+    await supabase.from("banned_messages").insert({
+      user_id: state.me.id,
+      username: state.profile.username,
+      message: clean,
+      bad_word: badWords.join(', '),
+      room: 'dm'
+    });
+    
+    alert(`DM mesajınız küfür içerdiği için silindi ve 1 saat banlandınız!\nYasaklı kelime: ${badWords.join(', ')}`);
+    await logout(false);
+    return;
+  }
+  
+  await supabase.from("dms").insert({ 
+    from_user_id: state.me.id, 
+    to_user_id: state.dmWith.id, 
+    message: clean 
+  });
 }
 
 async function blockUser(userId) { await supabase.from("blocks").insert({ user_id: state.me.id, blocked_user_id: userId }); }
