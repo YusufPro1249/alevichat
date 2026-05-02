@@ -604,11 +604,13 @@ async function sendRoomMessage(text) {
   const clean = sanitizeMessage(text);
   if (!clean) throw new Error("Boş mesaj gönderilemez.");
   
-  // Küfür kontrolü - mesajı göndermeden önce
+  // Küfür kontrolü
   const badWords = detectBadWords(clean);
   if (badWords.length > 0) {
-    // Kendi mesajını engelle ve banla
+    // Banla
     await banUser(state.me.id, `Küfür: ${badWords.join(', ')}`, "1");
+    
+    // Yasaklı mesajı kaydet
     await supabase.from("banned_messages").insert({
       user_id: state.me.id,
       username: state.profile.username,
@@ -617,7 +619,7 @@ async function sendRoomMessage(text) {
       room: state.room
     });
     
-    // Odaya uyarı mesajı at
+    // Uyarı mesajı at (küfürlü mesaj yerine)
     await supabase.from("messages").insert({
       user_id: state.me.id,
       username: "🤖 Bot",
@@ -625,12 +627,18 @@ async function sendRoomMessage(text) {
       message: `🚫 @${state.profile.username} küfür nedeniyle 1 saat banlandı.`
     });
     
-    alert("Mesajınız küfür içerdiği için 1 saat banlandınız!");
+    alert(`Mesajınız küfür içerdiği için silindi ve 1 saat banlandınız!\nYasaklı kelime: ${badWords.join(', ')}`);
     await logout(false);
     return;
   }
   
-  await supabase.from("messages").insert({ user_id: state.me.id, username: state.profile.username, room: state.room, message: clean });
+  // Temiz mesajı gönder
+  await supabase.from("messages").insert({ 
+    user_id: state.me.id, 
+    username: state.profile.username, 
+    room: state.room, 
+    message: clean 
+  });
 }
 
 async function sendDmMessage(text) {
