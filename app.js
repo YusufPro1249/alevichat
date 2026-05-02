@@ -29,6 +29,8 @@ const state = {
 };
 
 const el = {
+  pfAvatarFile: document.getElementById("pfAvatarFile"),
+  pfPreview: document.getElementById("pfPreview"),
   newBadWord: document.getElementById("newBadWord"),
   btnAddBadWord: document.getElementById("btnAddBadWord"),
   badWordsListEl: document.getElementById("badWordsList"),
@@ -898,24 +900,48 @@ function wireEvents() {
   // PROFİL
   el.btnProfile.addEventListener("click", openProfileModal);
   el.btnCloseProfile.addEventListener("click", closeProfileModal);
-  el.profileModal.addEventListener("click", (e) => { if (e.target === el.profileModal) closeProfileModal(); });
   el.profileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
-      const payload = { full_name: normalizeText(el.pfFullName.value, 80), age: Number(el.pfAge.value || 0), city: normalizeText(el.pfCity.value, 80), hobbies: normalizeText(el.pfHobbies.value, 180), about: normalizeText(el.pfAbout.value, 500), avatar_url: normalizeText(el.pfAvatarUrl.value, 500) };
-      if (payload.age && (payload.age < 18 || payload.age > 99)) throw new Error("Yaş 18-99 aralığında olmalı.");
-      const { data } = await supabase.from("profiles").update(payload).eq("id", state.me.id).select("id, email, username, full_name, phone, age, city, hobbies, about, avatar_url, role").single();
-      state.profile = data;
-      updateMeBadge(); await refreshPanels();
-      setNote(el.pfNote, "Profil güncellendi.");
-    } catch (error) { setNote(el.pfNote, error.message || "Güncelleme başarısız.", true); }
-  });
-
-  el.btnDmInbox.addEventListener("click", async () => {
-    if (!state.users.length) return;
-    const top = state.users.slice().sort((a, b) => (state.dmUnreadByUser.get(b.id) || 0) - (state.dmUnreadByUser.get(a.id) || 0))[0];
-    if (top) await openDm(top);
-  });
+      let avatarUrl = state.profile.avatar_url;
+    
+    // Dosya yüklendiyse
+      const file = el.pfAvatarFile?.files[0];
+      if (file) {
+      // Dosya adı oluştur
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${state.me.id}_${Date.now()}.${fileExt}`;
+      
+      // Supabase Storage'a yükle
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      // Public URL al
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      avatarUrl = urlData.publicUrl;
+    }
+    
+    const payload = { 
+      full_name: normalizeText(el.pfFullName.value, 80), 
+      age: Number(el.pfAge.value || 0), 
+      city: normalizeText(el.pfCity.value, 80), 
+      hobbies: normalizeText(el.pfHobbies.value, 180), 
+      about: normalizeText(el.pfAbout.value, 500), 
+      avatar_url: avatarUrl
+    };
+    
+    if (payload.age && (payload.age < 18 || payload.age > 99)) throw new Error("Yaş 18-99 aralığında olmalı.");
+    
+    const { data } = await supabase.from("profiles").update(payload).eq("id", state.me.id).select("id, email, username, full_name, phone, age, city, hobbies, about, avatar_url, role").single();
+    state.profile = data;
+    updateMeBadge(); 
+    await refreshPanels();
+    setNote(el.pfNote, "Profil güncellendi.");
+  } catch (error) { setNote(el.pfNote, error.message || "Güncelleme başarısız.", true); }
+});
 
   // ADMIN PANEL
   el.btnAdminPanel.addEventListener("click", openAdminPanel);
