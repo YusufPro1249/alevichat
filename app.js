@@ -29,6 +29,9 @@ const state = {
 };
 
 const el = {
+  newBadWord: document.getElementById("newBadWord"),
+  btnAddBadWord: document.getElementById("btnAddBadWord"),
+  badWordsListEl: document.getElementById("badWordsList"),
   roomList: document.getElementById("roomList"),
   userList: document.getElementById("userList"),
   blockedList: document.getElementById("blockedList"),
