@@ -115,6 +115,8 @@ const el = {
 
 // ========== YARDIMCI FONKSİYONLAR ==========
 
+
+
 function scrollToBottom(force = false) {
   setTimeout(() => {
     if (el.messages) el.messages.scrollTop = el.messages.scrollHeight;
@@ -618,6 +620,7 @@ async function refreshPanels() { await loadUsers(); await loadBlocks(); await lo
 
 async function postAuthSetup() {
   await loadProfile();
+  await loadBadWords();
   toggleAuth(true); updateMeBadge();
   await refreshPanels();
   renderRooms(); setHeader();
