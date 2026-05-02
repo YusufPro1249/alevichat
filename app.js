@@ -285,7 +285,7 @@ async function loadProfile() {
 async function loadUsers() {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, username, full_name, city, avatar_url")
+    .select("id, username, full_name, city, avatar_url, age, hobbies, about, role")
     .neq("id", state.me.id)
     .order("username", { ascending: true });
   if (error) throw error;
