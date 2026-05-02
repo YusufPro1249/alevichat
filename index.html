@@ -126,7 +126,8 @@
         <input id="pfAge" class="input" type="number" min="18" max="99" placeholder="Yaş" />
         <input id="pfCity" class="input" maxlength="80" placeholder="İl" />
         <input id="pfHobbies" class="input" maxlength="180" placeholder="Hobiler" />
-        <input id="pfAvatarUrl" class="input" maxlength="500" placeholder="Foto URL" />
+        <img id="pfPreview" class="user-detail__avatar" src="https://placehold.co/80x80" style="display:block;margin:0 auto 10px;width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);" />
+        <input id="pfAvatarFile" class="input" type="file" accept="image/*" style="padding:8px;" />
         <textarea id="pfAbout" class="input" rows="4" maxlength="500" placeholder="Açıklama"></textarea>
         <input id="pfRole" class="input" maxlength="16" placeholder="Rol" disabled />
         <div class="row row--end"><button class="btn btn--primary" type="submit">Kaydet</button></div>
