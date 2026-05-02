@@ -306,6 +306,58 @@ function renderBlocked() {
 }
 
 // ========== ADMIN FONKSİYONLARI ==========
+// ========== KÜFÜR BOTU ==========
+
+let badWordsList = [];
+
+async function loadBadWords() {
+  const { data } = await supabase.from("bad_words").select("word");
+  badWordsList = (data || []).map(item => item.word.toLowerCase());
+}
+
+function detectBadWords(text) {
+  const lowerText = text.toLowerCase().replace(/[ıi]/g, 'i').replace(/[ğg]/g, 'g').replace(/[şs]/g, 's').replace(/[çc]/g, 'c').replace(/[öo]/g, 'o').replace(/[üu]/g, 'u');
+  const words = lowerText.split(/\s+/);
+  const found = [];
+  
+  for (const word of words) {
+    for (const bad of badWordsList) {
+      if (word.includes(bad) || bad.includes(word)) {
+        found.push(bad);
+        break;
+      }
+    }
+  }
+  return found;
+}
+
+async function handleBadMessage(userId, username, message, room) {
+  const badWords = detectBadWords(message);
+  if (badWords.length === 0) return false;
+  
+  // Banla (1 saat)
+  await banUser(userId, `Küfür: ${badWords.join(', ')}`, "1");
+  
+  // Mesajı kaydet
+  await supabase.from("banned_messages").insert({
+    user_id: userId,
+    username: username,
+    message: message,
+    bad_word: badWords.join(', '),
+    room: room
+  });
+  
+  // Odaya uyarı mesajı at
+  await supabase.from("messages").insert({
+    user_id: state.me.id,
+    username: "🤖 Bot",
+    room: room,
+    message: `🚫 @${username} küfür nedeniyle 1 saat banlandı. Yasaklı kelime: ${badWords.join(', ')}`
+  });
+  
+  return true;
+}
+
 
 async function loadBannedUsers() {
   const { data, error } = await supabase.from("bans").select("id, user_id, reason, ban_type, expires_at, created_at, is_active").eq("is_active", true).order("created_at", { ascending: false });
