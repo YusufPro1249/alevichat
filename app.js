@@ -202,6 +202,10 @@ function shouldStickBottom() {
   return (el.messages.scrollHeight - el.messages.scrollTop - el.messages.clientHeight) < 50;
 }
 
+
+
+
+
 function addMessageRow({ id, user_id, username, message, created_at, modeKey }) {
   if (!id) return;
   const dedupe = `${modeKey}:${id}`;
@@ -312,6 +316,43 @@ function renderBlocked() {
 
 // ========== ADMIN FONKSİYONLARI ==========
 // ========== KÜFÜR BOTU ==========
+
+// Küfür listesi yönetimi
+async function renderBadWordsList() {
+  el.badWordsListEl.innerHTML = "";
+  for (const word of badWordsList) {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.style.display = "flex";
+    chip.style.justifyContent = "space-between";
+    chip.style.alignItems = "center";
+    chip.innerHTML = `${word} <button class="btn btn--ghost" style="padding:2px 8px;font-size:11px;" data-word="${word}">Sil</button>`;
+    chip.querySelector("button").addEventListener("click", async () => {
+      await supabase.from("bad_words").delete().eq("word", word);
+      await loadBadWords();
+      renderBadWordsList();
+    });
+    el.badWordsListEl.appendChild(chip);
+  }
+}
+
+el.btnAddBadWord?.addEventListener("click", async () => {
+  const word = el.newBadWord.value.trim().toLowerCase();
+  if (!word) return;
+  await supabase.from("bad_words").insert({ word }).select().maybeSingle();
+  el.newBadWord.value = "";
+  await loadBadWords();
+  renderBadWordsList();
+});
+
+// Admin panel açılınca render et
+const originalOpenAdmin = openAdminPanel;
+openAdminPanel = function() {
+  originalOpenAdmin();
+  renderBadWordsList();
+};
+
+
 
 let badWordsList = [];
 
