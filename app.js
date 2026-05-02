@@ -375,15 +375,23 @@ function openUserDetailPanel(user) {
   el.udAbout.textContent = user.about || "-";
   el.udRole.textContent = user.role || "user";
 
-  el.udBtnBlock.classList.toggle("hidden", state.blockedByMe.has(user.id));
-  el.udBtnUnblock.classList.toggle("hidden", !state.blockedByMe.has(user.id));
+  // Butonları göster/gizle
+  if (state.blockedByMe.has(user.id)) {
+    el.udBtnBlock.style.display = "none";
+    el.udBtnUnblock.style.display = "block";
+  } else {
+    el.udBtnBlock.style.display = "block";
+    el.udBtnUnblock.style.display = "none";
+  }
+  
   setNote(el.udNote, state.blockedMe.has(user.id) ? "Bu kullanıcı sizi engellemiş." : "");
 
-  el.userDetailPanel.classList.remove("hidden");
+  // Panel göster
+  el.userDetailPanel.style.display = "block";
 }
 
 function closeUserDetailPanel() {
-  el.userDetailPanel.classList.add("hidden");
+  el.userDetailPanel.style.display = "none";
 }
 
 function openUserModal(user) {
