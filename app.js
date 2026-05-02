@@ -574,7 +574,7 @@ function closeProfileModal() { el.profileModal.classList.add("hidden"); }
 // ========== VERİ YÜKLEME ==========
 
 async function loadRoomHistory(room) {
-  const { data } = await supabase.from("messages").select("id, user_id, username, room, message, created_at").eq("room", room).order("id", { ascending: true }).limit(300);
+  const { data } = await supabase.from("messages").select("id, user_id, username, room, message, created_at, is_deleted").eq("room", room).order("id", { ascending: true }).limit(300);
   resetMessages();
   for (const row of data || []) {
     if (state.blockedByMe.has(row.user_id) || state.blockedMe.has(row.user_id)) continue;
@@ -586,24 +586,27 @@ async function loadRoomHistory(room) {
 async function loadDmHistory(otherId) {
   const me = state.me.id;
   const query = `and(from_user_id.eq.${me},to_user_id.eq.${otherId}),and(from_user_id.eq.${otherId},to_user_id.eq.${me})`;
-  const { data } = await supabase.from("dms").select("id, from_user_id, to_user_id, message, created_at").or(query).order("id", { ascending: true }).limit(300);
+  const { data } = await supabase.from("dms").select("id, from_user_id, to_user_id, message, created_at, is_deleted").or(query).order("id", { ascending: true }).limit(300);
   resetMessages();
   for (const row of data || []) {
     const name = row.from_user_id === state.me.id ? state.profile?.username : state.users.find((u) => u.id === row.from_user_id)?.username;
-    addMessageRow({ id: row.id, user_id: row.from_user_id, username: name || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${otherId}` });
+    addMessageRow({ id: row.id, user_id: row.from_user_id, username: name || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${otherId}`, is_deleted: row.is_deleted });
   }
   scrollToBottom(true);
 }
 
 // ========== REALTIME ==========
 
-function subscribeRoom(room) {
-  state.roomChannel = supabase.channel(`room-${room}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `room=eq.${room}` }, (payload) => {
-    const row = payload.new;
-    if (state.mode !== "room" || state.room !== room) return;
-    if (state.blockedByMe.has(row.user_id) || state.blockedMe.has(row.user_id)) return;
-    addMessageRow({ ...row, modeKey: `room:${room}` });
-  }).subscribe();
+async function loadDmHistory(otherId) {
+  const me = state.me.id;
+  const query = `and(from_user_id.eq.${me},to_user_id.eq.${otherId}),and(from_user_id.eq.${otherId},to_user_id.eq.${me})`;
+  const { data } = await supabase.from("dms").select("id, from_user_id, to_user_id, message, created_at, is_deleted").or(query).order("id", { ascending: true }).limit(300);
+  resetMessages();
+  for (const row of data || []) {
+    const name = row.from_user_id === state.me.id ? state.profile?.username : state.users.find((u) => u.id === row.from_user_id)?.username;
+    addMessageRow({ id: row.id, user_id: row.from_user_id, username: name || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${otherId}`, is_deleted: row.is_deleted });
+  }
+  scrollToBottom(true);
 }
 
 function subscribeDms() {
@@ -613,18 +616,13 @@ function subscribeDms() {
     if (state.blockedByMe.has(row.from_user_id) || state.blockedMe.has(row.from_user_id)) return;
     if (state.mode === "dm" && state.dmWith?.id === row.from_user_id) {
       const user = state.users.find((u) => u.id === row.from_user_id);
-      addMessageRow({ id: row.id, user_id: row.from_user_id, username: user?.username || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${row.from_user_id}` });
-    } else {
-      state.dmUnreadByUser.set(row.from_user_id, (state.dmUnreadByUser.get(row.from_user_id) || 0) + 1);
-      renderUsers();
-      renderRooms(); // BU SATIRI EKLE
-    }
+      addMessageRow({ id: row.id, user_id: row.from_user_id, username: user?.username || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${row.from_user_id}`, is_deleted: row.is_deleted || false });
+    } else { state.dmUnreadByUser.set(row.from_user_id, (state.dmUnreadByUser.get(row.from_user_id) || 0) + 1); renderUsers(); }
   }).subscribe();
-  
   state.dmOutChannel = supabase.channel(`dm-out-${me}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "dms", filter: `from_user_id=eq.${me}` }, (payload) => {
     const row = payload.new;
     if (!(state.mode === "dm" && state.dmWith?.id === row.to_user_id)) return;
-    addMessageRow({ id: row.id, user_id: row.from_user_id, username: state.profile?.username || "ben", message: row.message, created_at: row.created_at, modeKey: `dm:${row.to_user_id}` });
+    addMessageRow({ id: row.id, user_id: row.from_user_id, username: state.profile?.username || "ben", message: row.message, created_at: row.created_at, modeKey: `dm:${row.to_user_id}`, is_deleted: row.is_deleted || false });
   }).subscribe();
 }
 
