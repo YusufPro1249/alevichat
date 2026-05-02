@@ -323,15 +323,7 @@ async function renderBadWordsList() {
   for (const word of badWordsList) {
     const chip = document.createElement("div");
     chip.className = "chip";
-    chip.style.display = "flex";
-    chip.style.justifyContent = "space-between";
-    chip.style.alignItems = "center";
-    chip.innerHTML = `${word} <button class="btn btn--ghost" style="padding:2px 8px;font-size:11px;" data-word="${word}">Sil</button>`;
-    chip.querySelector("button").addEventListener("click", async () => {
-      await supabase.from("bad_words").delete().eq("word", word);
-      await loadBadWords();
-      renderBadWordsList();
-    });
+    chip.textContent = word;
     el.badWordsListEl.appendChild(chip);
   }
 }
