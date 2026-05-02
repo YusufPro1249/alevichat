@@ -25,6 +25,7 @@ const state = {
   dmInChannel: null,
   dmOutChannel: null,
   authSub: null,
+  adminSelectedUserId: null,
 };
 
 const el = {
@@ -41,7 +42,6 @@ const el = {
   messages: document.getElementById("messages"),
   composer: document.getElementById("composer"),
   messageInput: document.getElementById("messageInput"),
-
   authCard: document.getElementById("authCard"),
   authNote: document.getElementById("authNote"),
   btnShowLogin: document.getElementById("btnShowLogin"),
@@ -60,11 +60,9 @@ const el = {
   suCity: document.getElementById("suCity"),
   suAbout: document.getElementById("suAbout"),
   suAvatarUrl: document.getElementById("suAvatarUrl"),
-
   myAvatar: document.getElementById("myAvatar"),
   myUsername: document.getElementById("myUsername"),
   mySub: document.getElementById("mySub"),
-
   userModal: document.getElementById("userModal"),
   umTitle: document.getElementById("umTitle"),
   umNote: document.getElementById("umNote"),
@@ -73,7 +71,6 @@ const el = {
   btnBlockUser: document.getElementById("btnBlockUser"),
   btnUnblockUser: document.getElementById("btnUnblockUser"),
   btnReportUser: document.getElementById("btnReportUser"),
-
   btnProfile: document.getElementById("btnProfile"),
   profileModal: document.getElementById("profileModal"),
   btnCloseProfile: document.getElementById("btnCloseProfile"),
@@ -87,8 +84,6 @@ const el = {
   pfAvatarUrl: document.getElementById("pfAvatarUrl"),
   pfRole: document.getElementById("pfRole"),
   pfNote: document.getElementById("pfNote"),
-
-  // SAĞ PANEL
   userDetailPanel: document.getElementById("userDetailPanel"),
   btnCloseUserDetail: document.getElementById("btnCloseUserDetail"),
   udAvatar: document.getElementById("udAvatar"),
@@ -104,25 +99,30 @@ const el = {
   udBtnUnblock: document.getElementById("udBtnUnblock"),
   udBtnReport: document.getElementById("udBtnReport"),
   udNote: document.getElementById("udNote"),
+  adminPanel: document.getElementById("adminPanel"),
+  btnAdminPanel: document.getElementById("btnAdminPanel"),
+  btnCloseAdmin: document.getElementById("btnCloseAdmin"),
+  adminUserSearch: document.getElementById("adminUserSearch"),
+  adminUserList: document.getElementById("adminUserList"),
+  adminSelectedUser: document.getElementById("adminSelectedUser"),
+  adminBanReason: document.getElementById("adminBanReason"),
+  adminBanDuration: document.getElementById("adminBanDuration"),
+  btnAdminBan: document.getElementById("btnAdminBan"),
+  btnAdminUnban: document.getElementById("btnAdminUnban"),
+  adminBannedList: document.getElementById("adminBannedList"),
+  adminNote: document.getElementById("adminNote"),
 };
 
 // ========== YARDIMCI FONKSİYONLAR ==========
 
 function scrollToBottom(force = false) {
   setTimeout(() => {
-    if (el.messages) {
-      el.messages.scrollTop = el.messages.scrollHeight;
-    }
+    if (el.messages) el.messages.scrollTop = el.messages.scrollHeight;
   }, force ? 50 : 0);
 }
 
 function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 }
 
 function setNote(target, text, bad = false) {
@@ -177,6 +177,7 @@ function updateMeBadge() {
     el.myUsername.textContent = "@misafir";
     el.mySub.textContent = "Giriş yapmadınız";
     el.myAvatar.src = "https://placehold.co/64x64";
+    if (el.btnAdminPanel) el.btnAdminPanel.style.display = "none";
     return;
   }
   const role = state.profile.role === "admin" ? "ADMIN" : "USER";
@@ -184,6 +185,7 @@ function updateMeBadge() {
   el.myUsername.textContent = `@${state.profile.username}`;
   el.mySub.textContent = `${state.profile.full_name || ""} · ${state.profile.city || "-"}`.trim();
   el.myAvatar.src = state.profile.avatar_url || "https://placehold.co/64x64";
+  if (el.btnAdminPanel) el.btnAdminPanel.style.display = state.profile.role === "admin" ? "inline-block" : "none";
 }
 
 function resetMessages() {
@@ -192,8 +194,7 @@ function resetMessages() {
 }
 
 function shouldStickBottom() {
-  const remaining = el.messages.scrollHeight - el.messages.scrollTop - el.messages.clientHeight;
-  return remaining < 50;
+  return (el.messages.scrollHeight - el.messages.scrollTop - el.messages.clientHeight) < 50;
 }
 
 function addMessageRow({ id, user_id, username, message, created_at, modeKey }) {
@@ -201,45 +202,24 @@ function addMessageRow({ id, user_id, username, message, created_at, modeKey }) 
   const dedupe = `${modeKey}:${id}`;
   if (state.renderedIds.has(dedupe)) return;
   state.renderedIds.add(dedupe);
-
   const autoScroll = shouldStickBottom();
   const mine = state.me && user_id === state.me.id;
   const user = state.users.find((u) => u.id === user_id);
-
   const row = document.createElement("article");
   row.className = `msg ${mine ? "msg--mine" : ""}`;
-
   row.innerHTML = `
     <div class="msg__meta">
       <div class="msg__user">
         <img class="msg__avatar" src="${user?.avatar_url || "https://placehold.co/32x32"}" />
-        <button class="msg__name" type="button" ${mine ? "disabled" : ""}>
-          ${escapeHtml(username || "user")}
-        </button>
+        <button class="msg__name" type="button" ${mine ? "disabled" : ""}>${escapeHtml(username || "user")}</button>
       </div>
       <span>${formatTime(created_at)}</span>
     </div>
     <div class="msg__text">${escapeHtml(message || "")}</div>
   `;
-
-  // Avatar tıklama -> Sağ panel
   const avatar = row.querySelector(".msg__avatar");
-  if (avatar && !mine) {
-    avatar.addEventListener("click", () => {
-      const u = state.users.find((u) => u.id === user_id);
-      if (u) openUserDetailPanel(u);
-    });
-  }
-
-  // İsim tıklama -> Sağ panel
-  if (!mine) {
-    const btn = row.querySelector(".msg__name");
-    btn?.addEventListener("click", () => {
-      const u = state.users.find((u) => u.id === user_id);
-      if (u) openUserDetailPanel(u);
-    });
-  }
-
+  if (avatar && !mine) avatar.addEventListener("click", () => { const u = state.users.find((u) => u.id === user_id); if (u) openUserDetailPanel(u); });
+  if (!mine) { const btn = row.querySelector(".msg__name"); btn?.addEventListener("click", () => { const u = state.users.find((u) => u.id === user_id); if (u) openUserDetailPanel(u); }); }
   el.messages.appendChild(row);
   if (autoScroll) scrollToBottom();
 }
@@ -251,62 +231,33 @@ function canInteractWith(uid) {
   return true;
 }
 
-async function safeRemoveChannel(ch) {
-  if (!ch) return;
-  try {
-    await supabase.removeChannel(ch);
-  } catch (_e) {}
-}
-
-async function unsubscribeRoom() {
-  const ch = state.roomChannel;
-  state.roomChannel = null;
-  await safeRemoveChannel(ch);
-}
-
-async function unsubscribeDms() {
-  const inCh = state.dmInChannel;
-  const outCh = state.dmOutChannel;
-  state.dmInChannel = null;
-  state.dmOutChannel = null;
-  await Promise.all([safeRemoveChannel(inCh), safeRemoveChannel(outCh)]);
-}
+async function safeRemoveChannel(ch) { if (!ch) return; try { await supabase.removeChannel(ch); } catch (_e) {} }
+async function unsubscribeRoom() { const ch = state.roomChannel; state.roomChannel = null; await safeRemoveChannel(ch); }
+async function unsubscribeDms() { const inCh = state.dmInChannel; const outCh = state.dmOutChannel; state.dmInChannel = null; state.dmOutChannel = null; await Promise.all([safeRemoveChannel(inCh), safeRemoveChannel(outCh)]); }
 
 async function loadProfile() {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, username, full_name, phone, age, city, hobbies, about, avatar_url, role")
-    .eq("id", state.me.id)
-    .maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("id, email, username, full_name, phone, age, city, hobbies, about, avatar_url, role").eq("id", state.me.id).maybeSingle();
   if (error) throw error;
   state.profile = data;
 }
 
 async function loadUsers() {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, username, full_name, city, avatar_url, age, hobbies, about, role")
-    .neq("id", state.me.id)
-    .order("username", { ascending: true });
+  const { data, error } = await supabase.from("profiles").select("id, username, full_name, city, avatar_url, age, hobbies, about, role").neq("id", state.me.id).order("username", { ascending: true });
   if (error) throw error;
   state.users = data || [];
 }
 
 async function loadBlocks() {
-  state.blockedByMe.clear();
-  state.blockedMe.clear();
-  const { data: byMe, error: e1 } = await supabase.from("blocks").select("blocked_user_id").eq("user_id", state.me.id);
-  if (e1) throw e1;
+  state.blockedByMe.clear(); state.blockedMe.clear();
+  const { data: byMe } = await supabase.from("blocks").select("blocked_user_id").eq("user_id", state.me.id);
   for (const item of byMe || []) state.blockedByMe.add(item.blocked_user_id);
-  const { data: blockedMe, error: e2 } = await supabase.from("blocks").select("user_id").eq("blocked_user_id", state.me.id);
-  if (e2) throw e2;
+  const { data: blockedMe } = await supabase.from("blocks").select("user_id").eq("blocked_user_id", state.me.id);
   for (const item of blockedMe || []) state.blockedMe.add(item.user_id);
 }
 
 async function loadDmUnreadCounts() {
   state.dmUnreadByUser.clear();
-  const { data, error } = await supabase.from("dms").select("from_user_id").eq("to_user_id", state.me.id).limit(500);
-  if (error) throw error;
+  const { data } = await supabase.from("dms").select("from_user_id").eq("to_user_id", state.me.id).limit(500);
   for (const item of data || []) {
     if (state.blockedByMe.has(item.from_user_id) || state.blockedMe.has(item.from_user_id)) continue;
     state.dmUnreadByUser.set(item.from_user_id, (state.dmUnreadByUser.get(item.from_user_id) || 0) + 1);
@@ -316,8 +267,7 @@ async function loadDmUnreadCounts() {
 function renderRooms() {
   el.roomList.innerHTML = "";
   for (const room of ROOMS) {
-    const btn = document.createElement("button");
-    btn.type = "button";
+    const btn = document.createElement("button"); btn.type = "button";
     btn.className = `chip ${state.mode === "room" && state.room === room.key ? "chip--active" : ""}`;
     btn.textContent = `# ${room.label}`;
     btn.addEventListener("click", () => openRoom(room.key));
@@ -329,15 +279,10 @@ function renderUsers() {
   const q = el.userSearch.value.trim().toLowerCase();
   const users = state.users.filter((u) => u.username.toLowerCase().includes(q));
   el.userList.innerHTML = "";
-  if (!users.length) {
-    el.userList.innerHTML = `<p class="muted">Kullanıcı bulunamadı.</p>`;
-    return;
-  }
+  if (!users.length) { el.userList.innerHTML = `<p class="muted">Kullanıcı bulunamadı.</p>`; return; }
   for (const user of users) {
     const unread = state.dmUnreadByUser.get(user.id) || 0;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "chip";
+    const btn = document.createElement("button"); btn.type = "button"; btn.className = "chip";
     btn.textContent = unread > 0 ? `@${user.username} (${unread})` : `@${user.username}`;
     btn.addEventListener("click", () => openUserDetailPanel(user));
     el.userList.appendChild(btn);
@@ -347,25 +292,95 @@ function renderUsers() {
 function renderBlocked() {
   el.blockedList.innerHTML = "";
   const blockedUsers = state.users.filter((u) => state.blockedByMe.has(u.id));
-  if (!blockedUsers.length) {
-    el.blockedList.innerHTML = `<p class="muted">Engellenen kullanıcı yok.</p>`;
-    return;
-  }
+  if (!blockedUsers.length) { el.blockedList.innerHTML = `<p class="muted">Engellenen kullanıcı yok.</p>`; return; }
   for (const user of blockedUsers) {
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.textContent = `@${user.username}`;
+    const btn = document.createElement("button"); btn.className = "chip"; btn.textContent = `@${user.username}`;
     btn.addEventListener("click", () => openUserDetailPanel(user));
     el.blockedList.appendChild(btn);
   }
 }
 
-// ========== SAĞ PANEL FONKSİYONLARI ==========
+// ========== ADMIN FONKSİYONLARI ==========
+
+async function loadBannedUsers() {
+  const { data, error } = await supabase.from("bans").select("id, user_id, reason, ban_type, expires_at, created_at, is_active").eq("is_active", true).order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function checkUserBan(userId) {
+  const { data } = await supabase.from("bans").select("id, ban_type, expires_at, is_active").eq("user_id", userId).eq("is_active", true).maybeSingle();
+  if (!data) return false;
+  if (data.ban_type === "temporary" && data.expires_at && new Date(data.expires_at) < new Date()) {
+    await supabase.from("bans").update({ is_active: false }).eq("id", data.id);
+    return false;
+  }
+  return true;
+}
+
+async function banUser(userId, reason, duration) {
+  const banType = duration === "permanent" ? "permanent" : "temporary";
+  let expiresAt = null;
+  if (banType === "temporary") expiresAt = new Date(Date.now() + parseInt(duration) * 3600000).toISOString();
+  const { error } = await supabase.from("bans").insert({ user_id: userId, banned_by: state.me.id, reason: reason || "Sebep belirtilmedi", ban_type: banType, expires_at: expiresAt });
+  if (error) throw error;
+}
+
+async function unbanUser(userId) {
+  await supabase.from("bans").update({ is_active: false }).eq("user_id", userId).eq("is_active", true);
+}
+
+async function renderAdminUserList() {
+  const q = el.adminUserSearch.value.trim().toLowerCase();
+  const users = state.users.filter((u) => u.username.toLowerCase().includes(q));
+  el.adminUserList.innerHTML = "";
+  if (!users.length) { el.adminUserList.innerHTML = `<p class="muted">Kullanıcı bulunamadı.</p>`; return; }
+  for (const user of users) {
+    const isBanned = await checkUserBan(user.id);
+    const btn = document.createElement("button"); btn.className = "chip";
+    btn.textContent = `@${user.username} ${isBanned ? "🚫" : ""}`;
+    btn.addEventListener("click", () => selectAdminUser(user));
+    el.adminUserList.appendChild(btn);
+  }
+}
+
+async function selectAdminUser(user) {
+  state.adminSelectedUserId = user.id;
+  el.adminSelectedUser.textContent = `Seçili: @${user.username}`;
+  const isBanned = await checkUserBan(user.id);
+  el.btnAdminBan.style.display = isBanned ? "none" : "block";
+  el.btnAdminUnban.style.display = isBanned ? "block" : "none";
+  setNote(el.adminNote, isBanned ? "Bu kullanıcı zaten banlı." : "");
+}
+
+async function renderBannedList() {
+  const bans = await loadBannedUsers();
+  el.adminBannedList.innerHTML = "";
+  if (!bans.length) { el.adminBannedList.innerHTML = `<p class="muted">Banlı kullanıcı yok.</p>`; return; }
+  for (const ban of bans) {
+    const user = state.users.find((u) => u.id === ban.user_id);
+    const username = user ? `@${user.username}` : ban.user_id.slice(0, 8);
+    const expires = ban.expires_at ? new Date(ban.expires_at).toLocaleString("tr-TR") : "Süresiz";
+    const div = document.createElement("div"); div.className = "chip";
+    div.innerHTML = `<strong>${username}</strong><br><small>Sebep: ${escapeHtml(ban.reason)}</small><br><small>Süre: ${expires}</small>`;
+    el.adminBannedList.appendChild(div);
+  }
+}
+
+function openAdminPanel() {
+  if (!state.profile || state.profile.role !== "admin") { alert("Bu özellik sadece adminler içindir."); return; }
+  el.adminPanel.classList.remove("hidden");
+  renderAdminUserList();
+  renderBannedList();
+}
+
+function closeAdminPanel() { el.adminPanel.classList.add("hidden"); }
+
+// ========== SAĞ PANEL ==========
 
 function openUserDetailPanel(user) {
   if (!user) return;
   state.selectedUser = user;
-
   el.udAvatar.src = user.avatar_url || "https://placehold.co/80x80";
   el.udFullName.textContent = user.full_name || "-";
   el.udUsername.textContent = `@${user.username}`;
@@ -374,25 +389,13 @@ function openUserDetailPanel(user) {
   el.udHobbies.textContent = user.hobbies || "-";
   el.udAbout.textContent = user.about || "-";
   el.udRole.textContent = user.role || "user";
-
-  // Butonları göster/gizle
-  if (state.blockedByMe.has(user.id)) {
-    el.udBtnBlock.style.display = "none";
-    el.udBtnUnblock.style.display = "block";
-  } else {
-    el.udBtnBlock.style.display = "block";
-    el.udBtnUnblock.style.display = "none";
-  }
-  
+  el.udBtnBlock.style.display = state.blockedByMe.has(user.id) ? "none" : "block";
+  el.udBtnUnblock.style.display = state.blockedByMe.has(user.id) ? "block" : "none";
   setNote(el.udNote, state.blockedMe.has(user.id) ? "Bu kullanıcı sizi engellemiş." : "");
-
-  // Panel göster
   el.userDetailPanel.style.display = "block";
 }
 
-function closeUserDetailPanel() {
-  el.userDetailPanel.style.display = "none";
-}
+function closeUserDetailPanel() { el.userDetailPanel.style.display = "none"; }
 
 function openUserModal(user) {
   state.selectedUser = user;
@@ -403,15 +406,10 @@ function openUserModal(user) {
   el.userModal.classList.remove("hidden");
 }
 
-function closeUserModal() {
-  el.userModal.classList.add("hidden");
-}
+function closeUserModal() { el.userModal.classList.add("hidden"); }
 
 function openProfileModal() {
-  if (!state.profile) {
-    alert("Profil bilgisi henüz yüklenmedi.");
-    return;
-  }
+  if (!state.profile) { alert("Profil bilgisi henüz yüklenmedi."); return; }
   el.pfUsername.value = state.profile.username || "";
   el.pfFullName.value = state.profile.full_name || "";
   el.pfAge.value = state.profile.age || "";
@@ -424,20 +422,12 @@ function openProfileModal() {
   el.profileModal.classList.remove("hidden");
 }
 
-function closeProfileModal() {
-  el.profileModal.classList.add("hidden");
-}
+function closeProfileModal() { el.profileModal.classList.add("hidden"); }
 
 // ========== VERİ YÜKLEME ==========
 
 async function loadRoomHistory(room) {
-  const { data, error } = await supabase
-    .from("messages")
-    .select("id, user_id, username, room, message, created_at")
-    .eq("room", room)
-    .order("id", { ascending: true })
-    .limit(300);
-  if (error) throw error;
+  const { data } = await supabase.from("messages").select("id, user_id, username, room, message, created_at").eq("room", room).order("id", { ascending: true }).limit(300);
   resetMessages();
   for (const row of data || []) {
     if (state.blockedByMe.has(row.user_id) || state.blockedMe.has(row.user_id)) continue;
@@ -449,8 +439,7 @@ async function loadRoomHistory(room) {
 async function loadDmHistory(otherId) {
   const me = state.me.id;
   const query = `and(from_user_id.eq.${me},to_user_id.eq.${otherId}),and(from_user_id.eq.${otherId},to_user_id.eq.${me})`;
-  const { data, error } = await supabase.from("dms").select("id, from_user_id, to_user_id, message, created_at").or(query).order("id", { ascending: true }).limit(300);
-  if (error) throw error;
+  const { data } = await supabase.from("dms").select("id, from_user_id, to_user_id, message, created_at").or(query).order("id", { ascending: true }).limit(300);
   resetMessages();
   for (const row of data || []) {
     const name = row.from_user_id === state.me.id ? state.profile?.username : state.users.find((u) => u.id === row.from_user_id)?.username;
@@ -462,42 +451,29 @@ async function loadDmHistory(otherId) {
 // ========== REALTIME ==========
 
 function subscribeRoom(room) {
-  state.roomChannel = supabase
-    .channel(`room-${room}`)
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `room=eq.${room}` }, (payload) => {
-      const row = payload.new;
-      if (state.mode !== "room" || state.room !== room) return;
-      if (state.blockedByMe.has(row.user_id) || state.blockedMe.has(row.user_id)) return;
-      addMessageRow({ ...row, modeKey: `room:${room}` });
-    })
-    .subscribe();
+  state.roomChannel = supabase.channel(`room-${room}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `room=eq.${room}` }, (payload) => {
+    const row = payload.new;
+    if (state.mode !== "room" || state.room !== room) return;
+    if (state.blockedByMe.has(row.user_id) || state.blockedMe.has(row.user_id)) return;
+    addMessageRow({ ...row, modeKey: `room:${room}` });
+  }).subscribe();
 }
 
 function subscribeDms() {
   const me = state.me.id;
-  state.dmInChannel = supabase
-    .channel(`dm-in-${me}`)
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "dms", filter: `to_user_id=eq.${me}` }, (payload) => {
-      const row = payload.new;
-      if (state.blockedByMe.has(row.from_user_id) || state.blockedMe.has(row.from_user_id)) return;
-      if (state.mode === "dm" && state.dmWith?.id === row.from_user_id) {
-        const user = state.users.find((u) => u.id === row.from_user_id);
-        addMessageRow({ id: row.id, user_id: row.from_user_id, username: user?.username || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${row.from_user_id}` });
-      } else {
-        state.dmUnreadByUser.set(row.from_user_id, (state.dmUnreadByUser.get(row.from_user_id) || 0) + 1);
-        renderUsers();
-      }
-    })
-    .subscribe();
-
-  state.dmOutChannel = supabase
-    .channel(`dm-out-${me}`)
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "dms", filter: `from_user_id=eq.${me}` }, (payload) => {
-      const row = payload.new;
-      if (!(state.mode === "dm" && state.dmWith?.id === row.to_user_id)) return;
-      addMessageRow({ id: row.id, user_id: row.from_user_id, username: state.profile?.username || "ben", message: row.message, created_at: row.created_at, modeKey: `dm:${row.to_user_id}` });
-    })
-    .subscribe();
+  state.dmInChannel = supabase.channel(`dm-in-${me}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "dms", filter: `to_user_id=eq.${me}` }, (payload) => {
+    const row = payload.new;
+    if (state.blockedByMe.has(row.from_user_id) || state.blockedMe.has(row.from_user_id)) return;
+    if (state.mode === "dm" && state.dmWith?.id === row.from_user_id) {
+      const user = state.users.find((u) => u.id === row.from_user_id);
+      addMessageRow({ id: row.id, user_id: row.from_user_id, username: user?.username || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${row.from_user_id}` });
+    } else { state.dmUnreadByUser.set(row.from_user_id, (state.dmUnreadByUser.get(row.from_user_id) || 0) + 1); renderUsers(); }
+  }).subscribe();
+  state.dmOutChannel = supabase.channel(`dm-out-${me}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "dms", filter: `from_user_id=eq.${me}` }, (payload) => {
+    const row = payload.new;
+    if (!(state.mode === "dm" && state.dmWith?.id === row.to_user_id)) return;
+    addMessageRow({ id: row.id, user_id: row.from_user_id, username: state.profile?.username || "ben", message: row.message, created_at: row.created_at, modeKey: `dm:${row.to_user_id}` });
+  }).subscribe();
 }
 
 // ========== AKSİYONLAR ==========
@@ -505,93 +481,62 @@ function subscribeDms() {
 async function openRoom(room) {
   if (!ROOMS.some((r) => r.key === room)) return;
   await unsubscribeRoom();
-  state.mode = "room";
-  state.room = room;
-  state.dmWith = null;
-  setHeader();
-  renderRooms();
+  state.mode = "room"; state.room = room; state.dmWith = null;
+  setHeader(); renderRooms();
   await loadRoomHistory(room);
   subscribeRoom(room);
 }
 
 async function openDm(user) {
-  if (!canInteractWith(user.id)) {
-    alert("Bu kullanıcıyla DM engel nedeniyle kapalı.");
-    return;
-  }
-  state.mode = "dm";
-  state.dmWith = user;
+  if (!canInteractWith(user.id)) { alert("Bu kullanıcıyla DM engel nedeniyle kapalı."); return; }
+  state.mode = "dm"; state.dmWith = user;
   state.dmUnreadByUser.delete(user.id);
-  renderUsers();
-  setHeader();
-  renderRooms();
+  renderUsers(); setHeader(); renderRooms();
   await unsubscribeRoom();
   await loadDmHistory(user.id);
 }
 
 async function sendRoomMessage(text) {
+  const isBanned = await checkUserBan(state.me.id);
+  if (isBanned) { alert("Banlandığınız için mesaj gönderemezsiniz."); return; }
   const clean = sanitizeMessage(text);
   if (!clean) throw new Error("Boş mesaj gönderilemez.");
-  const { error } = await supabase.from("messages").insert({ user_id: state.me.id, username: state.profile.username, room: state.room, message: clean });
-  if (error) throw error;
+  await supabase.from("messages").insert({ user_id: state.me.id, username: state.profile.username, room: state.room, message: clean });
 }
 
 async function sendDmMessage(text) {
+  const isBanned = await checkUserBan(state.me.id);
+  if (isBanned) { alert("Banlandığınız için mesaj gönderemezsiniz."); return; }
   if (!state.dmWith) throw new Error("DM seçilmedi.");
   if (!canInteractWith(state.dmWith.id)) throw new Error("Engel nedeniyle DM kapalı.");
   const clean = sanitizeMessage(text);
   if (!clean) throw new Error("Boş mesaj gönderilemez.");
-  const { error } = await supabase.from("dms").insert({ from_user_id: state.me.id, to_user_id: state.dmWith.id, message: clean });
-  if (error) throw error;
+  await supabase.from("dms").insert({ from_user_id: state.me.id, to_user_id: state.dmWith.id, message: clean });
 }
 
-async function blockUser(userId) {
-  const { error } = await supabase.from("blocks").insert({ user_id: state.me.id, blocked_user_id: userId });
-  if (error && !String(error.message || "").toLowerCase().includes("duplicate")) throw error;
-}
-
-async function unblockUser(userId) {
-  const { error } = await supabase.from("blocks").delete().eq("user_id", state.me.id).eq("blocked_user_id", userId);
-  if (error) throw error;
-}
+async function blockUser(userId) { await supabase.from("blocks").insert({ user_id: state.me.id, blocked_user_id: userId }); }
+async function unblockUser(userId) { await supabase.from("blocks").delete().eq("user_id", state.me.id).eq("blocked_user_id", userId); }
 
 async function reportUser(userId, reason) {
   const clean = normalizeText(reason, MAX_REASON_LENGTH);
   if (!clean) throw new Error("Rapor sebebi gerekli.");
-  const { error } = await supabase.from("reports").insert({ reporter_id: state.me.id, target_user_id: userId, reason: clean });
-  if (error) throw error;
+  await supabase.from("reports").insert({ reporter_id: state.me.id, target_user_id: userId, reason: clean });
 }
 
-async function refreshPanels() {
-  await loadUsers();
-  await loadBlocks();
-  await loadDmUnreadCounts();
-  renderUsers();
-  renderBlocked();
-}
+async function refreshPanels() { await loadUsers(); await loadBlocks(); await loadDmUnreadCounts(); renderUsers(); renderBlocked(); }
 
 async function postAuthSetup() {
   await loadProfile();
-  toggleAuth(true);
-  updateMeBadge();
+  toggleAuth(true); updateMeBadge();
   await refreshPanels();
-  renderRooms();
-  setHeader();
-  await unsubscribeDms();
-  subscribeDms();
+  renderRooms(); setHeader();
+  await unsubscribeDms(); subscribeDms();
   await openRoom(state.room);
 }
 
 async function restoreSession() {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) throw error;
-  if (!data.session) {
-    state.me = null;
-    state.profile = null;
-    toggleAuth(false);
-    updateMeBadge();
-    return;
-  }
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) { state.me = null; state.profile = null; toggleAuth(false); updateMeBadge(); return; }
   state.me = data.session.user;
   await postAuthSetup();
 }
@@ -600,16 +545,14 @@ async function resolveEmailFromIdentifier(identifier) {
   const input = normalizeText(identifier, 120).toLowerCase();
   if (!input) throw new Error("Email veya kullanıcı adı zorunlu.");
   if (input.includes("@")) return input;
-  const { data, error } = await supabase.from("profiles").select("email").eq("username", input).maybeSingle();
-  if (error) throw error;
+  const { data } = await supabase.from("profiles").select("email").eq("username", input).maybeSingle();
   if (!data?.email) throw new Error("Kullanıcı bulunamadı.");
   return data.email;
 }
 
 async function login(identifier, password) {
   const email = await resolveEmailFromIdentifier(identifier);
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  await supabase.auth.signInWithPassword({ email, password });
   const { data } = await supabase.auth.getUser();
   state.me = data.user;
   await postAuthSetup();
@@ -621,26 +564,9 @@ async function signup(payload) {
   if (!payload.email.includes("@")) throw new Error("Email formatı geçersiz.");
   const { data: existing } = await supabase.from("profiles").select("id").eq("username", payload.username).maybeSingle();
   if (existing) throw new Error("Bu kullanıcı adı kullanılıyor.");
-
-  const { data, error } = await supabase.auth.signUp({ email: payload.email, password: payload.password });
-  if (error) throw error;
+  const { data } = await supabase.auth.signUp({ email: payload.email, password: payload.password });
   if (!data.user) throw new Error("Kayıt başarısız.");
-
-  const profilePayload = {
-    id: data.user.id,
-    email: payload.username + "@local.app",
-    username: payload.username,
-    full_name: payload.fullName,
-    phone: payload.phone,
-    age: payload.age,
-    city: payload.city,
-    hobbies: "",
-    about: payload.about,
-    avatar_url: payload.avatarUrl,
-    role: "user",
-  };
-  const { error: profileError } = await supabase.from("profiles").upsert(profilePayload, { onConflict: "id" });
-  if (profileError) throw profileError;
+  await supabase.from("profiles").upsert({ id: data.user.id, username: payload.username, full_name: payload.fullName, phone: payload.phone, age: payload.age, city: payload.city, hobbies: "", about: payload.about, avatar_url: payload.avatarUrl, role: "user" }, { onConflict: "id" });
   state.me = data.user;
   await postAuthSetup();
 }
@@ -648,60 +574,23 @@ async function signup(payload) {
 async function logout(skipRemote = false) {
   await Promise.all([unsubscribeRoom(), unsubscribeDms()]);
   if (!skipRemote) await supabase.auth.signOut();
-  state.me = null;
-  state.profile = null;
-  state.users = [];
-  state.mode = "room";
-  state.room = ROOMS[0].key;
-  state.dmWith = null;
-  state.selectedUser = null;
-  state.blockedByMe.clear();
-  state.blockedMe.clear();
-  state.dmUnreadByUser.clear();
-  resetMessages();
-  closeUserDetailPanel();
-  toggleAuth(false);
-  updateMeBadge();
-  renderRooms();
-  renderUsers();
-  renderBlocked();
+  state.me = null; state.profile = null; state.users = [];
+  state.mode = "room"; state.room = ROOMS[0].key; state.dmWith = null; state.selectedUser = null;
+  state.blockedByMe.clear(); state.blockedMe.clear(); state.dmUnreadByUser.clear();
+  resetMessages(); closeUserDetailPanel();
+  toggleAuth(false); updateMeBadge(); renderRooms(); renderUsers(); renderBlocked();
 }
-
-
 
 // ========== EVENTLER ==========
 
-// MOBİL SIDEBAR TOGGLE
-const mobileToggle = document.getElementById("mobileToggle");
-const sidebar = document.querySelector(".sidebar");
-const sidebarOverlay = document.getElementById("sidebarOverlay");
-
-if (mobileToggle) {
-  mobileToggle.addEventListener("click", () => {
-    sidebar.classList.toggle("open");
-    sidebarOverlay.classList.toggle("open");
-  });
-}
-
-if (sidebarOverlay) {
-  sidebarOverlay.addEventListener("click", () => {
-    sidebar.classList.remove("open");
-    sidebarOverlay.classList.remove("open");
-  });
-}
-
-// Kullanıcıya tıklayınca mobile'da sidebar'ı kapat
-const originalOpenUserDetail = openUserDetailPanel;
-openUserDetailPanel = function(user) {
-  originalOpenUserDetail(user);
-  if (window.innerWidth <= 860) {
-    sidebar.classList.remove("open");
-    sidebarOverlay.classList.remove("open");
-  }
-};
-
-
 function wireEvents() {
+  // MOBİL TOGGLE
+  const mobileToggle = document.getElementById("mobileToggle");
+  const sidebar = document.querySelector(".sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
+  if (mobileToggle) mobileToggle.addEventListener("click", () => { sidebar.classList.toggle("open"); sidebarOverlay.classList.toggle("open"); });
+  if (sidebarOverlay) sidebarOverlay.addEventListener("click", () => { sidebar.classList.remove("open"); sidebarOverlay.classList.remove("open"); });
+
   el.btnShowLogin.addEventListener("click", () => setAuthMode("login"));
   el.btnShowSignup.addEventListener("click", () => setAuthMode("signup"));
 
@@ -714,9 +603,7 @@ function wireEvents() {
       if (!identifier || !password) throw new Error("Tüm alanları doldurun.");
       await login(identifier, password);
       setNote(el.authNote, "Giriş başarılı.");
-    } catch (error) {
-      setNote(el.authNote, error.message || "Giriş başarısız.", true);
-    }
+    } catch (error) { setNote(el.authNote, error.message || "Giriş başarısız.", true); }
   });
 
   el.signupForm.addEventListener("submit", async (e) => {
@@ -728,8 +615,7 @@ function wireEvents() {
         fullName: normalizeText(el.suFullName.value, 80),
         email: normalizeText(el.suEmail.value, 120).toLowerCase(),
         phone: normalizeText(el.suPhone.value, 30),
-        password: el.suPassword.value,
-        password2: el.suPassword2.value,
+        password: el.suPassword.value, password2: el.suPassword2.value,
         age: Number(el.suAge.value || 0),
         city: normalizeText(el.suCity.value, 80),
         about: normalizeText(el.suAbout.value, 500),
@@ -738,9 +624,7 @@ function wireEvents() {
       if (payload.age < 18 || payload.age > 99) throw new Error("Yaş 18-99 aralığında olmalı.");
       await signup(payload);
       setNote(el.authNote, "Kayıt başarılı.");
-    } catch (error) {
-      setNote(el.authNote, error.message || "Kayıt başarısız.", true);
-    }
+    } catch (error) { setNote(el.authNote, error.message || "Kayıt başarısız.", true); }
   });
 
   el.composer.addEventListener("submit", async (e) => {
@@ -748,33 +632,17 @@ function wireEvents() {
     const text = sanitizeMessage(el.messageInput.value);
     if (!text) return;
     el.messageInput.value = "";
-    try {
-      if (state.mode === "room") await sendRoomMessage(text);
-      else await sendDmMessage(text);
-    } catch (error) {
-      alert(error.message || "Mesaj gönderilemedi.");
-    }
+    try { if (state.mode === "room") await sendRoomMessage(text); else await sendDmMessage(text); }
+    catch (error) { alert(error.message || "Mesaj gönderilemedi."); }
   });
 
-  el.btnLogout.addEventListener("click", async () => {
-    try {
-      await logout(false);
-    } catch (error) {
-      alert(error.message || "Çıkış başarısız.");
-    }
-  });
-
+  el.btnLogout.addEventListener("click", async () => { try { await logout(false); } catch (error) { alert(error.message || "Çıkış başarısız."); } });
   el.userSearch.addEventListener("input", renderUsers);
-
-  // SAĞ PANEL EVENTLERİ
   el.btnCloseUserDetail.addEventListener("click", closeUserDetailPanel);
 
   el.udBtnDm.addEventListener("click", async () => {
     if (!state.selectedUser) return;
-    if (!canInteractWith(state.selectedUser.id)) {
-      alert("Bu kullanıcıyla DM engel nedeniyle kapalı.");
-      return;
-    }
+    if (!canInteractWith(state.selectedUser.id)) { alert("Bu kullanıcıyla DM engel nedeniyle kapalı."); return; }
     await openDm(state.selectedUser);
   });
 
@@ -785,145 +653,97 @@ function wireEvents() {
       await refreshPanels();
       openUserDetailPanel(state.selectedUser);
       if (state.mode === "dm" && state.dmWith?.id === state.selectedUser.id) await openRoom(state.room);
-    } catch (error) {
-      setNote(el.udNote, error.message || "İşlem başarısız.", true);
-    }
+    } catch (error) { setNote(el.udNote, error.message || "İşlem başarısız.", true); }
   });
 
   el.udBtnUnblock.addEventListener("click", async () => {
     if (!state.selectedUser) return;
-    try {
-      await unblockUser(state.selectedUser.id);
-      await refreshPanels();
-      openUserDetailPanel(state.selectedUser);
-    } catch (error) {
-      setNote(el.udNote, error.message || "İşlem başarısız.", true);
-    }
+    try { await unblockUser(state.selectedUser.id); await refreshPanels(); openUserDetailPanel(state.selectedUser); }
+    catch (error) { setNote(el.udNote, error.message || "İşlem başarısız.", true); }
   });
 
   el.udBtnReport.addEventListener("click", async () => {
     if (!state.selectedUser) return;
     const reason = prompt("Rapor sebebi:");
     if (!reason) return;
-    try {
-      await reportUser(state.selectedUser.id, reason);
-      setNote(el.udNote, "Rapor kaydedildi.");
-    } catch (error) {
-      setNote(el.udNote, error.message || "Rapor başarısız.", true);
-    }
+    try { await reportUser(state.selectedUser.id, reason); setNote(el.udNote, "Rapor kaydedildi."); }
+    catch (error) { setNote(el.udNote, error.message || "Rapor başarısız.", true); }
   });
 
-  // MODAL EVENTLERİ
+  // MODAL
   el.btnCloseUserModal.addEventListener("click", closeUserModal);
-  el.userModal.addEventListener("click", (e) => {
-    if (e.target === el.userModal) closeUserModal();
-  });
-  el.btnStartDm.addEventListener("click", async () => {
-    if (!state.selectedUser) return;
-    closeUserModal();
-    await openDm(state.selectedUser);
-  });
+  el.userModal.addEventListener("click", (e) => { if (e.target === el.userModal) closeUserModal(); });
+  el.btnStartDm.addEventListener("click", async () => { if (!state.selectedUser) return; closeUserModal(); await openDm(state.selectedUser); });
   el.btnBlockUser.addEventListener("click", async () => {
     if (!state.selectedUser) return;
-    try {
-      await blockUser(state.selectedUser.id);
-      await refreshPanels();
-      openUserModal(state.selectedUser);
-      if (state.mode === "dm" && state.dmWith?.id === state.selectedUser.id) await openRoom(state.room);
-    } catch (error) {
-      setNote(el.umNote, error.message || "İşlem başarısız.", true);
-    }
+    try { await blockUser(state.selectedUser.id); await refreshPanels(); openUserModal(state.selectedUser); if (state.mode === "dm" && state.dmWith?.id === state.selectedUser.id) await openRoom(state.room); }
+    catch (error) { setNote(el.umNote, error.message || "İşlem başarısız.", true); }
   });
   el.btnUnblockUser.addEventListener("click", async () => {
     if (!state.selectedUser) return;
-    try {
-      await unblockUser(state.selectedUser.id);
-      await refreshPanels();
-      openUserModal(state.selectedUser);
-    } catch (error) {
-      setNote(el.umNote, error.message || "İşlem başarısız.", true);
-    }
+    try { await unblockUser(state.selectedUser.id); await refreshPanels(); openUserModal(state.selectedUser); }
+    catch (error) { setNote(el.umNote, error.message || "İşlem başarısız.", true); }
   });
   el.btnReportUser.addEventListener("click", async () => {
     if (!state.selectedUser) return;
-    const reason = prompt("Rapor sebebi:");
-    if (!reason) return;
-    try {
-      await reportUser(state.selectedUser.id, reason);
-      setNote(el.umNote, "Rapor kaydedildi.");
-    } catch (error) {
-      setNote(el.umNote, error.message || "Rapor başarısız.", true);
-    }
+    const reason = prompt("Rapor sebebi:"); if (!reason) return;
+    try { await reportUser(state.selectedUser.id, reason); setNote(el.umNote, "Rapor kaydedildi."); }
+    catch (error) { setNote(el.umNote, error.message || "Rapor başarısız.", true); }
   });
 
-  // PROFİL EVENTLERİ
+  // PROFİL
   el.btnProfile.addEventListener("click", openProfileModal);
   el.btnCloseProfile.addEventListener("click", closeProfileModal);
-  el.profileModal.addEventListener("click", (e) => {
-    if (e.target === el.profileModal) closeProfileModal();
-  });
+  el.profileModal.addEventListener("click", (e) => { if (e.target === el.profileModal) closeProfileModal(); });
   el.profileForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        full_name: normalizeText(el.pfFullName.value, 80),
-        age: Number(el.pfAge.value || 0),
-        city: normalizeText(el.pfCity.value, 80),
-        hobbies: normalizeText(el.pfHobbies.value, 180),
-        about: normalizeText(el.pfAbout.value, 500),
-        avatar_url: normalizeText(el.pfAvatarUrl.value, 500),
-      };
+      const payload = { full_name: normalizeText(el.pfFullName.value, 80), age: Number(el.pfAge.value || 0), city: normalizeText(el.pfCity.value, 80), hobbies: normalizeText(el.pfHobbies.value, 180), about: normalizeText(el.pfAbout.value, 500), avatar_url: normalizeText(el.pfAvatarUrl.value, 500) };
       if (payload.age && (payload.age < 18 || payload.age > 99)) throw new Error("Yaş 18-99 aralığında olmalı.");
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(payload)
-        .eq("id", state.me.id)
-        .select("id, email, username, full_name, phone, age, city, hobbies, about, avatar_url, role")
-        .single();
-      if (error) throw error;
+      const { data } = await supabase.from("profiles").update(payload).eq("id", state.me.id).select("id, email, username, full_name, phone, age, city, hobbies, about, avatar_url, role").single();
       state.profile = data;
-      updateMeBadge();
-      await refreshPanels();
+      updateMeBadge(); await refreshPanels();
       setNote(el.pfNote, "Profil güncellendi.");
-    } catch (error) {
-      setNote(el.pfNote, error.message || "Güncelleme başarısız.", true);
-    }
+    } catch (error) { setNote(el.pfNote, error.message || "Güncelleme başarısız.", true); }
   });
 
   el.btnDmInbox.addEventListener("click", async () => {
     if (!state.users.length) return;
-    const top = state.users
-      .slice()
-      .sort((a, b) => (state.dmUnreadByUser.get(b.id) || 0) - (state.dmUnreadByUser.get(a.id) || 0))[0];
+    const top = state.users.slice().sort((a, b) => (state.dmUnreadByUser.get(b.id) || 0) - (state.dmUnreadByUser.get(a.id) || 0))[0];
     if (top) await openDm(top);
   });
 
-  const { data } = supabase.auth.onAuthStateChange(async (_evt, session) => {
-    if (!session && state.me) await logout(true);
+  // ADMIN PANEL
+  el.btnAdminPanel.addEventListener("click", openAdminPanel);
+  el.btnCloseAdmin.addEventListener("click", closeAdminPanel);
+  el.adminUserSearch.addEventListener("input", renderAdminUserList);
+  el.btnAdminBan.addEventListener("click", async () => {
+    if (!state.adminSelectedUserId) return;
+    try {
+      await banUser(state.adminSelectedUserId, el.adminBanReason.value.trim(), el.adminBanDuration.value);
+      setNote(el.adminNote, "Kullanıcı banlandı.");
+      el.adminBanReason.value = "";
+      await renderAdminUserList(); await renderBannedList();
+    } catch (error) { setNote(el.adminNote, error.message || "Banlama başarısız.", true); }
   });
-  state.authSub = data.subscription;
+  el.btnAdminUnban.addEventListener("click", async () => {
+    if (!state.adminSelectedUserId) return;
+    try {
+      await unbanUser(state.adminSelectedUserId);
+      setNote(el.adminNote, "Ban kaldırıldı.");
+      await renderAdminUserList(); await renderBannedList();
+    } catch (error) { setNote(el.adminNote, error.message || "İşlem başarısız.", true); }
+  });
 
-  window.addEventListener("beforeunload", () => {
-    unsubscribeRoom();
-    unsubscribeDms();
-    state.authSub?.unsubscribe?.();
-  });
+  supabase.auth.onAuthStateChange(async (_evt, session) => { if (!session && state.me) await logout(true); });
+  window.addEventListener("beforeunload", () => { unsubscribeRoom(); unsubscribeDms(); });
 }
-
-// ========== BAŞLAT ==========
 
 async function bootstrap() {
   setAuthMode("login");
   wireEvents();
-  renderRooms();
-  renderUsers();
-  renderBlocked();
-  try {
-    await restoreSession();
-  } catch (error) {
-    setNote(el.authNote, error.message || "Başlatma hatası.", true);
-    toggleAuth(false);
-  }
+  renderRooms(); renderUsers(); renderBlocked();
+  try { await restoreSession(); } catch (error) { setNote(el.authNote, error.message || "Başlatma hatası.", true); toggleAuth(false); }
 }
 
 bootstrap();
