@@ -583,32 +583,6 @@ async function loadRoomHistory(room) {
   scrollToBottom(true);
 }
 
-async function loadDmHistory(otherId) {
-  const me = state.me.id;
-  const query = `and(from_user_id.eq.${me},to_user_id.eq.${otherId}),and(from_user_id.eq.${otherId},to_user_id.eq.${me})`;
-  const { data } = await supabase.from("dms").select("id, from_user_id, to_user_id, message, created_at, is_deleted").or(query).order("id", { ascending: true }).limit(300);
-  resetMessages();
-  for (const row of data || []) {
-    const name = row.from_user_id === state.me.id ? state.profile?.username : state.users.find((u) => u.id === row.from_user_id)?.username;
-    addMessageRow({ id: row.id, user_id: row.from_user_id, username: name || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${otherId}`, is_deleted: row.is_deleted });
-  }
-  scrollToBottom(true);
-}
-
-// ========== REALTIME ==========
-
-// BU FONKSİYONU SİL (257-267 arası)
-async function loadDmHistory(otherId) {
-  const me = state.me.id;
-  const query = `and(from_user_id.eq.${me},to_user_id.eq.${otherId}),and(from_user_id.eq.${otherId},to_user_id.eq.${me})`;
-  const { data } = await supabase.from("dms").select("id, from_user_id, to_user_id, message, created_at, is_deleted").or(query).order("id", { ascending: true }).limit(300);
-  resetMessages();
-  for (const row of data || []) {
-    const name = row.from_user_id === state.me.id ? state.profile?.username : state.users.find((u) => u.id === row.from_user_id)?.username;
-    addMessageRow({ id: row.id, user_id: row.from_user_id, username: name || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${otherId}`, is_deleted: row.is_deleted });
-  }
-  scrollToBottom(true);
-}
 
 function subscribeRoom(room) {
   state.roomChannel = supabase.channel(`room-${room}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `room=eq.${room}` }, (payload) => {
