@@ -667,7 +667,39 @@ async function logout(skipRemote = false) {
   renderBlocked();
 }
 
+
+
 // ========== EVENTLER ==========
+
+// MOBİL SIDEBAR TOGGLE
+const mobileToggle = document.getElementById("mobileToggle");
+const sidebar = document.querySelector(".sidebar");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+if (mobileToggle) {
+  mobileToggle.addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+    sidebarOverlay.classList.toggle("open");
+  });
+}
+
+if (sidebarOverlay) {
+  sidebarOverlay.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    sidebarOverlay.classList.remove("open");
+  });
+}
+
+// Kullanıcıya tıklayınca mobile'da sidebar'ı kapat
+const originalOpenUserDetail = openUserDetailPanel;
+openUserDetailPanel = function(user) {
+  originalOpenUserDetail(user);
+  if (window.innerWidth <= 860) {
+    sidebar.classList.remove("open");
+    sidebarOverlay.classList.remove("open");
+  }
+};
+
 
 function wireEvents() {
   el.btnShowLogin.addEventListener("click", () => setAuthMode("login"));
