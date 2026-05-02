@@ -800,6 +800,18 @@ function wireEvents() {
   el.btnShowLogin.addEventListener("click", () => setAuthMode("login"));
   el.btnShowSignup.addEventListener("click", () => setAuthMode("signup"));
 
+  // Profil fotoğrafı önizleme
+  if (el.pfAvatarFile) {
+    el.pfAvatarFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (file && el.pfPreview) {
+        const reader = new FileReader();
+        reader.onload = (ev) => { el.pfPreview.src = ev.target.result; };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
   el.loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     try {
