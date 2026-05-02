@@ -119,6 +119,26 @@ const el = {
 // ========== YARDIMCI FONKSİYONLAR ==========
 
 
+async function deleteMessage(msgId, modeKey) {
+  const isRoom = modeKey.startsWith("room:");
+  const table = isRoom ? "messages" : "dms";
+  
+  const { error } = await supabase
+    .from(table)
+    .update({ is_deleted: true })
+    .eq("id", msgId);
+  
+  if (error) { alert("Mesaj silinemedi: " + error.message); return; }
+  
+  // DOM'dan kaldır
+  const msgEl = document.querySelector(`[data-msg-id="${msgId}"]`);
+  if (msgEl) {
+    msgEl.innerHTML = `<div class="msg__meta"><span style="color:var(--muted);font-style:italic;">Mesaj silindi</span></div>`;
+    msgEl.classList.remove("msg--mine");
+  }
+}
+
+
 
 function scrollToBottom(force = false) {
   setTimeout(() => {
