@@ -206,29 +206,61 @@ function shouldStickBottom() {
 
 
 
-function addMessageRow({ id, user_id, username, message, created_at, modeKey }) {
+function addMessageRow({ id, user_id, username, message, created_at, modeKey, is_deleted }) {
   if (!id) return;
   const dedupe = `${modeKey}:${id}`;
   if (state.renderedIds.has(dedupe)) return;
   state.renderedIds.add(dedupe);
+  
   const autoScroll = shouldStickBottom();
   const mine = state.me && user_id === state.me.id;
+  const isAdmin = state.profile?.role === "admin";
   const user = state.users.find((u) => u.id === user_id);
+
   const row = document.createElement("article");
   row.className = `msg ${mine ? "msg--mine" : ""}`;
+  row.dataset.msgId = id;
+  row.dataset.modeKey = modeKey;
+
+  if (is_deleted) {
+    row.innerHTML = `
+      <div class="msg__meta">
+        <span style="color:var(--muted);font-style:italic;">Mesaj silindi</span>
+      </div>
+    `;
+    el.messages.appendChild(row);
+    return;
+  }
+
   row.innerHTML = `
     <div class="msg__meta">
       <div class="msg__user">
         <img class="msg__avatar" src="${user?.avatar_url || "https://placehold.co/32x32"}" />
         <button class="msg__name" type="button" ${mine ? "disabled" : ""}>${escapeHtml(username || "user")}</button>
       </div>
-      <span>${formatTime(created_at)}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span>${formatTime(created_at)}</span>
+        ${(mine || isAdmin) ? `<button class="btn-delete-msg" data-id="${id}" data-mode="${modeKey}" title="Mesajı sil">🗑️</button>` : ""}
+      </div>
     </div>
     <div class="msg__text">${escapeHtml(message || "")}</div>
   `;
+
+  // Avatar ve isim tıklama
   const avatar = row.querySelector(".msg__avatar");
   if (avatar && !mine) avatar.addEventListener("click", () => { const u = state.users.find((u) => u.id === user_id); if (u) openUserDetailPanel(u); });
   if (!mine) { const btn = row.querySelector(".msg__name"); btn?.addEventListener("click", () => { const u = state.users.find((u) => u.id === user_id); if (u) openUserDetailPanel(u); }); }
+
+  // Silme butonu
+  const deleteBtn = row.querySelector(".btn-delete-msg");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm("Bu mesajı silmek istediğine emin misin?")) return;
+      await deleteMessage(id, modeKey);
+    });
+  }
+
   el.messages.appendChild(row);
   if (autoScroll) scrollToBottom();
 }
