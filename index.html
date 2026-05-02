@@ -15,7 +15,6 @@
   <script src="./config.js"></script>
   <script>window.__ALEVICHAT_CONFIG__=window.__ALEVICHAT_CONFIG__||{SUPABASE_URL:"https://pxfryssfvwdzgbkgrcud.supabase.co",SUPABASE_ANON_KEY:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4ZnJ5c3Nmdndkemdia2dyY3VkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2MjIwMzksImV4cCI6MjA5MzE5ODAzOX0.S__p_B4G63ifd64FsHOR9MlRpulSRLMbSvYdbnNhEUQ"};</script>
 
-  
   <div class="layout">
     <aside class="sidebar">
       <div class="brand"><div class="brand__logo">A</div><div><h1>Alevi Sohbet</h1><p>Evlilik & Realtime Platform</p></div></div>
@@ -137,13 +136,13 @@
   </div>
 
   <div id="adminPanel" class="modal hidden">
-    <div class="modal__box" style="max-width:750px;">
+    <div class="modal__box" style="max-width:800px;">
       <div class="modal__head"><strong>🛡️ Admin Panel</strong><button id="btnCloseAdmin" class="btn btn--ghost" type="button">Kapat</button></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
         <div>
-          <h3>Kullanıcılar</h3>
+          <h3>Kullanıcı Yönetimi</h3>
           <input id="adminUserSearch" class="input" type="text" placeholder="Kullanıcı ara..." />
-          <div id="adminUserList" class="stack" style="max-height:200px;overflow-y:auto;margin:8px 0;"></div>
+          <div id="adminUserList" class="stack" style="max-height:150px;overflow-y:auto;margin:8px 0;"></div>
           <p id="adminSelectedUser" class="muted">Kullanıcı seçilmedi</p>
           <select id="adminBanDuration" class="input" style="margin-top:8px;">
             <option value="permanent">Süresiz Ban</option>
@@ -162,7 +161,14 @@
         </div>
         <div>
           <h3>Banlı Kullanıcılar</h3>
-          <div id="adminBannedList" class="stack" style="max-height:300px;overflow-y:auto;"></div>
+          <div id="adminBannedList" class="stack" style="max-height:150px;overflow-y:auto;"></div>
+          
+          <h3 style="margin-top:16px;">Küfür Listesi</h3>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <input id="newBadWord" class="input" type="text" placeholder="Yeni kelime ekle..." />
+            <button id="btnAddBadWord" class="btn btn--primary" type="button">Ekle</button>
+          </div>
+          <div id="badWordsList" class="stack" style="max-height:150px;overflow-y:auto;"></div>
         </div>
       </div>
     </div>
