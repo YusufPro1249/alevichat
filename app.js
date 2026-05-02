@@ -559,10 +559,39 @@ async function openDm(user) {
 }
 
 async function sendRoomMessage(text) {
+  // Ban kontrolü
   const isBanned = await checkUserBan(state.me.id);
   if (isBanned) { alert("Banlandığınız için mesaj gönderemezsiniz."); return; }
+  
   const clean = sanitizeMessage(text);
   if (!clean) throw new Error("Boş mesaj gönderilemez.");
+  
+  // Küfür kontrolü - mesajı göndermeden önce
+  const badWords = detectBadWords(clean);
+  if (badWords.length > 0) {
+    // Kendi mesajını engelle ve banla
+    await banUser(state.me.id, `Küfür: ${badWords.join(', ')}`, "1");
+    await supabase.from("banned_messages").insert({
+      user_id: state.me.id,
+      username: state.profile.username,
+      message: clean,
+      bad_word: badWords.join(', '),
+      room: state.room
+    });
+    
+    // Odaya uyarı mesajı at
+    await supabase.from("messages").insert({
+      user_id: state.me.id,
+      username: "🤖 Bot",
+      room: state.room,
+      message: `🚫 @${state.profile.username} küfür nedeniyle 1 saat banlandı.`
+    });
+    
+    alert("Mesajınız küfür içerdiği için 1 saat banlandınız!");
+    await logout(false);
+    return;
+  }
+  
   await supabase.from("messages").insert({ user_id: state.me.id, username: state.profile.username, room: state.room, message: clean });
 }
 
