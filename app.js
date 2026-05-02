@@ -467,8 +467,13 @@ function subscribeDms() {
     if (state.mode === "dm" && state.dmWith?.id === row.from_user_id) {
       const user = state.users.find((u) => u.id === row.from_user_id);
       addMessageRow({ id: row.id, user_id: row.from_user_id, username: user?.username || "user", message: row.message, created_at: row.created_at, modeKey: `dm:${row.from_user_id}` });
-    } else { state.dmUnreadByUser.set(row.from_user_id, (state.dmUnreadByUser.get(row.from_user_id) || 0) + 1); renderUsers(); }
+    } else {
+      state.dmUnreadByUser.set(row.from_user_id, (state.dmUnreadByUser.get(row.from_user_id) || 0) + 1);
+      renderUsers();
+      renderRooms(); // BU SATIRI EKLE
+    }
   }).subscribe();
+  
   state.dmOutChannel = supabase.channel(`dm-out-${me}`).on("postgres_changes", { event: "INSERT", schema: "public", table: "dms", filter: `from_user_id=eq.${me}` }, (payload) => {
     const row = payload.new;
     if (!(state.mode === "dm" && state.dmWith?.id === row.to_user_id)) return;
