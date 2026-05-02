@@ -282,9 +282,14 @@ function renderUsers() {
   if (!users.length) { el.userList.innerHTML = `<p class="muted">Kullanıcı bulunamadı.</p>`; return; }
   for (const user of users) {
     const unread = state.dmUnreadByUser.get(user.id) || 0;
-    const btn = document.createElement("button"); btn.type = "button"; btn.className = "chip";
-    btn.textContent = unread > 0 ? `@${user.username} (${unread})` : `@${user.username}`;
-    btn.addEventListener("click", () => openUserDetailPanel(user));
+    const btn = document.createElement("button"); btn.type = "button"; 
+    btn.className = `chip ${unread > 0 ? "chip--unread" : ""}`; // BU SATIR DEĞİŞTİ
+    btn.textContent = unread > 0 ? `🔵 @${user.username} (${unread})` : `@${user.username}`;
+    btn.addEventListener("click", () => {
+      if (unread > 0) state.dmUnreadByUser.delete(user.id); // OKUNDU SAY
+      openUserDetailPanel(user);
+      renderUsers(); // LİSTEYİ GÜNCELLE
+    });
     el.userList.appendChild(btn);
   }
 }
